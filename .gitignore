@@ -23,6 +23,21 @@
 # misc
 .DS_Store
 *.pem
+Thumbs.db
+
+# project data storage (本地项目数据库)
+/.data/
+
+# tmp files
+/tmp/
+
+# remotion render output
+/out/
+/renders/
+
+# stitch design assets (本地设计稿)
+/.stitch_downloads/
+/Stitch_Screens/
 
 # debug
 npm-debug.log*
@@ -30,8 +45,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +55,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# agent / AI tool configs (本地 AI 工具配置)
+.gemini/
