@@ -1,6 +1,7 @@
 // minimal-white / Card / NumberedListSlide — 极简白色列表页
 // 布局：左对齐卡片式布局，淡蓝色序号圆圈
 import React from "react";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import type { NumberedListSlide } from "@/lib/types/card-video";
 
@@ -9,15 +10,15 @@ interface Props {
   style?: "dark-tech" | "minimal-light" | "gradient-purple";
 }
 
-const ACCENT = "#3b82f6";
 
 export const NumberedListSlideComp: React.FC<Props> = ({ data }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
 
   return (
     <AbsoluteFill
       style={{
-        background: "#fafafa",
+        background: theme.colors.background,
         display: "flex",
         flexDirection: "column",
         padding: "80px 70px",
@@ -29,9 +30,9 @@ export const NumberedListSlideComp: React.FC<Props> = ({ data }) => {
           style={{
             fontSize: 48,
             fontWeight: 700,
-            color: "#1a1a1a",
+            color: theme.colors.text,
             margin: "0 0 50px 0",
-            fontFamily: "'Noto Serif SC', serif",
+            fontFamily: theme.typography.headingFont,
             opacity: interpolate(frame, [0, 15], [0, 1], { extrapolateRight: "clamp" }),
           }}
         >
@@ -68,25 +69,25 @@ export const NumberedListSlideComp: React.FC<Props> = ({ data }) => {
                   width: 44,
                   height: 44,
                   borderRadius: "50%",
-                  background: `${ACCENT}12`,
-                  border: `2px solid ${ACCENT}30`,
+                  background: `${theme.colors.primary}12`,
+                  border: `2px solid ${theme.colors.primary}30`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
                 }}
               >
-                <span style={{ fontSize: 20, fontWeight: 700, color: ACCENT, fontFamily: "'Inter', sans-serif" }}>
+                <span style={{ fontSize: 20, fontWeight: 700, color: theme.colors.primary, fontFamily: theme.typography.bodyFont }}>
                   {i + 1}
                 </span>
               </div>
               {/* 内容 */}
               <div>
-                <p style={{ fontSize: 26, fontWeight: 600, color: "#1a1a1a", margin: 0, lineHeight: 1.4, fontFamily: "'Inter', sans-serif" }}>
+                <p style={{ fontSize: 26, fontWeight: 600, color: theme.colors.text, margin: 0, lineHeight: 1.4, fontFamily: theme.typography.bodyFont }}>
                   {item.text}
                 </p>
                 {item.detail && (
-                  <p style={{ fontSize: 20, color: "#888", margin: "8px 0 0", lineHeight: 1.5, fontFamily: "'Inter', sans-serif" }}>
+                  <p style={{ fontSize: 20, color: theme.colors.textMuted, margin: "8px 0 0", lineHeight: 1.5, fontFamily: theme.typography.bodyFont }}>
                     {item.detail}
                   </p>
                 )}
@@ -104,13 +105,13 @@ export const NumberedListSlideComp: React.FC<Props> = ({ data }) => {
               key={i}
               style={{
                 padding: "6px 16px",
-                background: `${ACCENT}10`,
-                border: `1px solid ${ACCENT}25`,
+                background: `${theme.colors.primary}10`,
+                border: `1px solid ${theme.colors.primary}25`,
                 borderRadius: 20,
                 fontSize: 16,
                 fontWeight: 600,
-                color: ACCENT,
-                fontFamily: "'Inter', sans-serif",
+                color: theme.colors.primary,
+                fontFamily: theme.typography.bodyFont,
               }}
             >
               {tag}

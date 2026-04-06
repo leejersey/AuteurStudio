@@ -1,7 +1,7 @@
 // Markdown 标题页 Slide
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { COLORS, FONTS } from "../../../styles/theme";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 
 interface Props {
   heading: string;
@@ -11,6 +11,7 @@ interface Props {
 
 export const MarkdownTitleSlide: React.FC<Props> = ({ heading, subtitle, tags }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
 
   const titleY = interpolate(frame, [0, 20], [40, 0], { extrapolateRight: "clamp" });
   const titleOpacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: "clamp" });
@@ -21,12 +22,12 @@ export const MarkdownTitleSlide: React.FC<Props> = ({ heading, subtitle, tags })
   return (
     <AbsoluteFill
       style={{
-        background: `linear-gradient(135deg, ${COLORS.background} 0%, #0d1117 50%, #161b22 100%)`,
+        background: `linear-gradient(135deg, ${theme.colors.background} 0%, #0d1117 50%, #161b22 100%)`,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        fontFamily: FONTS.body,
+        fontFamily: theme.typography.bodyFont,
         padding: 80,
       }}
     >
@@ -37,8 +38,8 @@ export const MarkdownTitleSlide: React.FC<Props> = ({ heading, subtitle, tags })
           top: 60,
           right: 80,
           fontSize: 14,
-          color: `${COLORS.primary}15`,
-          fontFamily: FONTS.mono,
+          color: `${theme.colors.primary}15`,
+          fontFamily: theme.typography.monoFont,
           whiteSpace: "pre",
           lineHeight: 2,
         }}
@@ -51,8 +52,8 @@ export const MarkdownTitleSlide: React.FC<Props> = ({ heading, subtitle, tags })
         style={{
           fontSize: 72,
           fontWeight: 800,
-          fontFamily: FONTS.headline,
-          color: COLORS.onSurface,
+          fontFamily: theme.typography.headingFont,
+          color: theme.colors.text,
           textAlign: "center",
           transform: `translateY(${titleY}px)`,
           opacity: titleOpacity,
@@ -68,7 +69,7 @@ export const MarkdownTitleSlide: React.FC<Props> = ({ heading, subtitle, tags })
         style={{
           width: lineWidth,
           height: 3,
-          background: `linear-gradient(90deg, ${COLORS.primary}, ${COLORS.secondary})`,
+          background: `linear-gradient(90deg, ${theme.colors.primary}, ${theme.colors.secondary})`,
           borderRadius: 2,
           margin: "30px 0",
         }}
@@ -79,7 +80,7 @@ export const MarkdownTitleSlide: React.FC<Props> = ({ heading, subtitle, tags })
         <p
           style={{
             fontSize: 28,
-            color: COLORS.onSurfaceVariant,
+            color: theme.colors.textMuted,
             opacity: subtitleOpacity,
             textAlign: "center",
             maxWidth: 900,
@@ -105,11 +106,11 @@ export const MarkdownTitleSlide: React.FC<Props> = ({ heading, subtitle, tags })
               key={i}
               style={{
                 padding: "6px 16px",
-                background: `${COLORS.primary}15`,
-                border: `1px solid ${COLORS.primary}30`,
+                background: `${theme.colors.primary}15`,
+                border: `1px solid ${theme.colors.primary}30`,
                 borderRadius: 20,
                 fontSize: 16,
-                color: COLORS.primary,
+                color: theme.colors.primary,
                 fontWeight: 600,
               }}
             >

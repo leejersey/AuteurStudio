@@ -1,5 +1,6 @@
 // minimal-white / Card / StepsSlide — 极简白色步骤页
 import React from "react";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import type { StepsSlide } from "@/lib/types/card-video";
 
@@ -8,16 +9,16 @@ interface Props {
   style?: "dark-tech" | "minimal-light" | "gradient-purple";
 }
 
-const ACCENT = "#3b82f6";
 
 export const StepsSlideComp: React.FC<Props> = ({ data }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
   const headingOpacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: "clamp" });
 
   return (
     <AbsoluteFill
       style={{
-        background: "#fafafa",
+        background: theme.colors.background,
         display: "flex",
         flexDirection: "column",
         padding: "80px 70px",
@@ -26,15 +27,15 @@ export const StepsSlideComp: React.FC<Props> = ({ data }) => {
       <h2 style={{
         fontSize: 44,
         fontWeight: 700,
-        color: "#1a1a1a",
+        color: theme.colors.text,
         margin: "0 0 16px",
-        fontFamily: "'Noto Serif SC', serif",
+        fontFamily: theme.typography.headingFont,
         opacity: headingOpacity,
       }}>
         {data.heading}
       </h2>
       {data.subheading && (
-        <p style={{ fontSize: 22, color: "#888", margin: "0 0 40px", fontFamily: "'Inter', sans-serif", opacity: headingOpacity }}>
+        <p style={{ fontSize: 22, color: theme.colors.textMuted, margin: "0 0 40px", fontFamily: theme.typography.bodyFont, opacity: headingOpacity }}>
           {data.subheading}
         </p>
       )}
@@ -65,29 +66,29 @@ export const StepsSlideComp: React.FC<Props> = ({ data }) => {
                     width: 36,
                     height: 36,
                     borderRadius: "50%",
-                    background: ACCENT,
+                    background: theme.colors.primary,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     color: "#fff",
                     fontSize: 16,
                     fontWeight: 700,
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: theme.typography.bodyFont,
                   }}
                 >
                   {i + 1}
                 </div>
                 {i < data.steps.length - 1 && (
-                  <div style={{ width: 2, height: 40, background: `${ACCENT}20`, marginTop: 4 }} />
+                  <div style={{ width: 2, height: 40, background: `${theme.colors.primary}20`, marginTop: 4 }} />
                 )}
               </div>
               {/* 内容 */}
               <div style={{ paddingTop: 4 }}>
-                <p style={{ fontSize: 26, fontWeight: 600, color: "#1a1a1a", margin: 0, lineHeight: 1.4, fontFamily: "'Inter', sans-serif" }}>
+                <p style={{ fontSize: 26, fontWeight: 600, color: theme.colors.text, margin: 0, lineHeight: 1.4, fontFamily: theme.typography.bodyFont }}>
                   {step.action}
                 </p>
                 {step.note && (
-                  <p style={{ fontSize: 20, color: "#888", margin: "6px 0 0", fontFamily: "'Inter', sans-serif" }}>
+                  <p style={{ fontSize: 20, color: theme.colors.textMuted, margin: "6px 0 0", fontFamily: theme.typography.bodyFont }}>
                     {step.note}
                   </p>
                 )}

@@ -1,7 +1,7 @@
 // Markdown 代码页 Slide — 语法高亮 + 逐行打字机动画
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { COLORS, FONTS } from "../../../styles/theme";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 import { CODE_THEMES, tokenizeLine } from "./codeThemes";
 import type { CodeTheme } from "@/lib/types/markdown-video";
 
@@ -23,6 +23,7 @@ export const MarkdownCodeSlide: React.FC<Props> = ({
   durationInFrames,
 }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
   const themeColors = CODE_THEMES[themeName] || CODE_THEMES.dracula;
 
   // 逐行打字机效果：80% 时间用于"打字"，20% 时间展示完整代码
@@ -63,8 +64,8 @@ export const MarkdownCodeSlide: React.FC<Props> = ({
   return (
     <AbsoluteFill
       style={{
-        background: COLORS.background,
-        fontFamily: FONTS.body,
+        background: theme.colors.background,
+        fontFamily: theme.typography.bodyFont,
         padding: "60px 80px",
         display: "flex",
         flexDirection: "column",
@@ -84,8 +85,8 @@ export const MarkdownCodeSlide: React.FC<Props> = ({
           style={{
             fontSize: 36,
             fontWeight: 700,
-            fontFamily: FONTS.headline,
-            color: COLORS.onSurface,
+            fontFamily: theme.typography.headingFont,
+            color: theme.colors.text,
             margin: 0,
           }}
         >
@@ -99,7 +100,7 @@ export const MarkdownCodeSlide: React.FC<Props> = ({
             background: `${themeColors.keyword}15`,
             padding: "4px 14px",
             borderRadius: 6,
-            fontFamily: FONTS.mono,
+            fontFamily: theme.typography.monoFont,
           }}
         >
           {language}
@@ -115,7 +116,7 @@ export const MarkdownCodeSlide: React.FC<Props> = ({
           transform: `scale(${editorScale})`,
           opacity: editorOpacity,
           boxShadow: `0 20px 80px ${themeColors.background}60`,
-          border: `1px solid ${COLORS.outlineVariant}30`,
+          border: `1px solid ${theme.colors.borderSubtle}30`,
         }}
       >
         {/* 窗口标题栏 */}
@@ -136,7 +137,7 @@ export const MarkdownCodeSlide: React.FC<Props> = ({
               marginLeft: 12,
               fontSize: 13,
               color: themeColors.headerText,
-              fontFamily: FONTS.mono,
+              fontFamily: theme.typography.monoFont,
             }}
           >
             {heading.toLowerCase().replace(/\s+/g, "_")}.{language}
@@ -173,7 +174,7 @@ export const MarkdownCodeSlide: React.FC<Props> = ({
                 key={i}
                 style={{
                   display: "flex",
-                  fontFamily: FONTS.mono,
+                  fontFamily: theme.typography.monoFont,
                   fontSize: 20,
                   lineHeight: 1.8,
                   padding: "0 24px",

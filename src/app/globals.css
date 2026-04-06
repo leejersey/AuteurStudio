@@ -109,3 +109,15 @@
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: .7; transform: scale(1.05); }
 }
+
+@keyframes aurora-1 {
+  0% { transform: translateY(0) scale(1) translateX(0); opacity: 0.5; }
+  50% { transform: translateY(5%) scale(1.1) translateX(3%); opacity: 0.8; }
+  100% { transform: translateY(-5%) scale(0.9) translateX(-3%); opacity: 0.4; }
+}
+
+@keyframes aurora-2 {
+  0% { transform: translateY(0) scale(1) translateX(0); opacity: 0.4; }
+  50% { transform: translateY(-8%) scale(1.15) translateX(-5%); opacity: 0.7; }
+  100% { transform: translateY(5%) scale(0.95) translateX(3%); opacity: 0.3; }
+}

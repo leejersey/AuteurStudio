@@ -6,7 +6,7 @@ export default function TopNavBar({
   showAuteurLogo?: boolean;
 }) {
   return (
-    <header className="sticky top-0 z-50 flex justify-between items-center px-6 w-full bg-background/60 backdrop-blur-xl h-16 border-b border-outline-variant/15 shadow-[0_0_40px_rgba(153,247,255,0.06)] font-body">
+    <header className="sticky top-0 z-50 flex justify-between items-center px-6 w-full bg-surface-container-highest/20 backdrop-blur-2xl h-16 border-b border-white/5 shadow-[0_4px_32px_rgba(0,0,0,0.3)] font-body">
       <div className="flex items-center gap-6">
         {showAuteurLogo ? (
           <div className="text-lg font-black text-primary font-headline">
@@ -53,7 +53,7 @@ export default function TopNavBar({
         <button className="px-4 py-1.5 text-xs lg:text-sm font-bold text-on-surface/70 hover:text-primary transition-all rounded bg-transparent hover:bg-surface-container-highest">
           分享
         </button>
-        <button className="px-5 py-1.5 lg:px-6 bg-gradient-to-br from-primary to-primary-container text-on-primary-fixed text-xs lg:text-sm font-black uppercase rounded-lg primary-glow hover:opacity-90 active:scale-95 transition-all outline-none tracking-wider">
+        <button className="px-5 py-1.5 lg:px-6 bg-gradient-to-br from-primary to-primary-container text-on-primary-fixed text-xs lg:text-sm font-black uppercase rounded-xl shadow-[0_0_20px_rgba(153,247,255,0.3)] hover:shadow-[0_0_30px_rgba(153,247,255,0.6)] hover:scale-105 active:scale-95 transition-all outline-none tracking-wider">
           导出{showAuteurLogo ? "" : "视频"}
         </button>
         {!showAuteurLogo && (

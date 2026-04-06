@@ -1,7 +1,7 @@
 // remotion/algo/StepIndicator.tsx — 步骤进度指示器（Remotion 内部组件）
 import React from "react";
 import { interpolate, useCurrentFrame } from "remotion";
-import { COLORS, FONTS } from "../../../styles/theme";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 
 interface StepIndicatorProps {
   currentStep: number;
@@ -17,6 +17,7 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
   description,
 }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
 
   const slideIn = interpolate(frame, [5, 20], [30, 0], {
     extrapolateLeft: "clamp",
@@ -55,7 +56,7 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
               width: i === currentStep ? 24 : 8,
               height: 8,
               borderRadius: 4,
-              background: i <= currentStep ? COLORS.primary : COLORS.outlineVariant,
+              background: i <= currentStep ? theme.colors.primary : theme.colors.borderSubtle,
               transition: "all 0.3s ease",
             }}
           />
@@ -63,8 +64,8 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
         <span
           style={{
             fontSize: 12,
-            color: COLORS.onSurfaceVariant,
-            fontFamily: FONTS.body,
+            color: theme.colors.textMuted,
+            fontFamily: theme.typography.bodyFont,
             marginLeft: 8,
           }}
         >
@@ -77,16 +78,16 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
         <div
           style={{
             padding: "12px 20px",
-            background: `${COLORS.surfaceHigh}80`,
+            background: `${theme.colors.surfaceHigh}80`,
             borderRadius: 10,
-            borderLeft: `3px solid ${COLORS.primary}`,
+            borderLeft: `3px solid ${theme.colors.primary}`,
           }}
         >
           <span
             style={{
               fontSize: 18,
               fontWeight: 700,
-              color: COLORS.primary,
+              color: theme.colors.primary,
             }}
           >
             {annotation}
@@ -98,16 +99,16 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
       <div
         style={{
           padding: "16px 20px",
-          background: `${COLORS.surface}90`,
+          background: `${theme.colors.surface}90`,
           borderRadius: 10,
-          border: `1px solid ${COLORS.outlineVariant}20`,
+          border: `1px solid ${theme.colors.borderSubtle}20`,
         }}
       >
         <span
           style={{
             fontSize: 20,
-            color: COLORS.onSurface,
-            fontFamily: FONTS.body,
+            color: theme.colors.text,
+            fontFamily: theme.typography.bodyFont,
             lineHeight: 1.6,
           }}
         >

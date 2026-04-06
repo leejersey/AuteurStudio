@@ -1,7 +1,7 @@
 // remotion/algo/CodeHighlight.tsx — 代码高亮展示（Remotion 内部组件）
 import React from "react";
 import { interpolate, useCurrentFrame } from "remotion";
-import { COLORS, FONTS } from "../../../styles/theme";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 
 interface CodeLine {
   text: string;
@@ -33,6 +33,7 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
   language = "Python",
 }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
 
   const opacity = interpolate(frame, [10, 25], [0, 1], {
     extrapolateRight: "clamp",
@@ -46,9 +47,9 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
         right: 60,
         width: 400,
         opacity,
-        background: COLORS.surface,
+        background: theme.colors.surface,
         borderRadius: 12,
-        border: `1px solid ${COLORS.outlineVariant}20`,
+        border: `1px solid ${theme.colors.borderSubtle}20`,
         overflow: "hidden",
       }}
     >
@@ -59,14 +60,14 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
           justifyContent: "space-between",
           alignItems: "center",
           padding: "10px 16px",
-          borderBottom: `1px solid ${COLORS.outlineVariant}15`,
+          borderBottom: `1px solid ${theme.colors.borderSubtle}15`,
         }}
       >
         <span
           style={{
             fontSize: 11,
             fontWeight: 700,
-            color: COLORS.secondary,
+            color: theme.colors.secondary,
             letterSpacing: 2,
             textTransform: "uppercase",
           }}
@@ -76,8 +77,8 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
         <span
           style={{
             fontSize: 10,
-            color: COLORS.onSurfaceVariant,
-            background: COLORS.surfaceHigh,
+            color: theme.colors.textMuted,
+            background: theme.colors.surfaceHigh,
             padding: "2px 8px",
             borderRadius: 4,
           }}
@@ -96,12 +97,12 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
               key={i}
               style={{
                 display: "flex",
-                fontFamily: FONTS.mono,
+                fontFamily: theme.typography.monoFont,
                 fontSize: 12,
                 lineHeight: 2,
                 paddingLeft: line.indent * 16,
-                background: isHighlighted ? `${COLORS.primary}15` : "transparent",
-                borderLeft: isHighlighted ? `2px solid ${COLORS.primary}` : "2px solid transparent",
+                background: isHighlighted ? `${theme.colors.primary}15` : "transparent",
+                borderLeft: isHighlighted ? `2px solid ${theme.colors.primary}` : "2px solid transparent",
                 marginLeft: -4,
                 paddingRight: 8,
               }}
@@ -109,7 +110,7 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
               <span
                 style={{
                   minWidth: 24,
-                  color: isHighlighted ? COLORS.primary : `${COLORS.onSurfaceVariant}40`,
+                  color: isHighlighted ? theme.colors.primary : `${theme.colors.textMuted}40`,
                   fontWeight: isHighlighted ? 700 : 400,
                   userSelect: "none",
                 }}
@@ -118,7 +119,7 @@ export const CodeHighlight: React.FC<CodeHighlightProps> = ({
               </span>
               <span
                 style={{
-                  color: isHighlighted ? COLORS.primary : COLORS.onSurfaceVariant,
+                  color: isHighlighted ? theme.colors.primary : theme.colors.textMuted,
                   fontWeight: isHighlighted ? 600 : 400,
                 }}
               >

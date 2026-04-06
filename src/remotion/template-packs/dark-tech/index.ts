@@ -3,6 +3,7 @@
 
 import { registerTemplate } from "../../template-registry";
 import type { VideoTemplate } from "../../template-registry";
+import { DARK_TECH_THEME } from "../../default-themes";
 
 // ─── Card Slides (9:16) ───
 import { TitleSlideComp } from "./card/TitleSlide";
@@ -38,6 +39,7 @@ const darkTechTemplate: VideoTemplate = {
       "linear-gradient(135deg, #0b0e14 0%, #161a21 40%, #00e2ee22 100%)",
     videoTypes: ["card", "algo", "knowledge", "markdown"],
   },
+  theme: DARK_TECH_THEME,
   card: {
     TitleSlide: TitleSlideComp,
     NumberedListSlide: NumberedListSlideComp,

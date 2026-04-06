@@ -63,6 +63,10 @@ export interface WorkflowState {
   markdownSlides: MarkdownSlide[];
   codeTheme: CodeTheme;
 
+  // 配音设置
+  voiceId: string;
+  voiceSpeed: number;
+
   // 通用
   isLoading: boolean;
   error: string | null;
@@ -85,6 +89,8 @@ export const INITIAL_WORKFLOW_STATE: WorkflowState = {
   markdownContent: "",
   markdownSlides: [],
   codeTheme: "dracula",
+  voiceId: "BV700_streaming",
+  voiceSpeed: 1.0,
   isLoading: false,
   error: null,
   history: [],

@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:migrate": "npx tsx scripts/migrate-json-to-pg.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.50",
@@ -18,7 +22,9 @@
     "@remotion/renderer": "4.0.445",
     "@tavily/core": "^0.7.2",
     "ai": "6.0.146",
+    "drizzle-orm": "^0.45.2",
     "next": "16.2.2",
+    "pg": "^8.20.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "remark": "^15.0.1",
@@ -31,9 +37,11 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "10.0.0",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
     "tailwindcss": "^4",

@@ -2,10 +2,17 @@
 import React, { useCallback, useMemo } from "react";
 import { AbsoluteFill, Sequence, Audio, staticFile, interpolate } from "remotion";
 import type { MarkdownVideoData, MarkdownSlide } from "@/lib/types/markdown-video";
-import { FONTS, TIMING } from "../styles/theme";
+import { TIMING } from "../styles/theme";
 import { getTemplate, getDefaultTemplateId } from "../template-registry";
 import type { MarkdownSlideRenderers } from "../template-registry";
 import { NarrationSubtitle } from "../shared/NarrationSubtitle";
+import { TemplateThemeProvider } from "../TemplateThemeContext";
+import { mergeTheme } from "../template-theme";
+import type { DeepPartial, TemplateTheme } from "../template-theme";
+
+// 确保模板已注册（side-effect import）
+import "../template-packs/dark-tech";
+import "../template-packs/minimal-white";
 
 const DEFAULT_BGM = "audio/bgm-tech-01.wav";
 
@@ -96,10 +103,21 @@ export const MarkdownVideo: React.FC<MarkdownVideoProps> = ({ data }) => {
     return <AbsoluteFill style={{ background: "#0b0e14" }} />;
   }
 
-  // 根据 templateId 获取对应的 slide 渲染器
+  // 根据 templateId 获取对应的 slide 渲染器和 theme
   const templateId = data.meta.templateId || getDefaultTemplateId();
   const template = getTemplate(templateId);
-  const renderers = template?.markdown || getTemplate(getDefaultTemplateId())!.markdown!;
+  const defaultTemplate = getTemplate(getDefaultTemplateId());
+
+  if (!template && !defaultTemplate) {
+    return <AbsoluteFill style={{ background: "#0b0e14" }} />;
+  }
+
+  const resolvedTemplate = template || defaultTemplate!;
+  const renderers = resolvedTemplate.markdown!;
+  const baseTheme = resolvedTemplate.theme;
+  const theme = (data.meta as Record<string, unknown>).themeOverrides
+    ? mergeTheme(baseTheme, (data.meta as Record<string, unknown>).themeOverrides as DeepPartial<TemplateTheme>)
+    : baseTheme;
 
   const slideDurations = useMemo(() => getSlideDurations(data), [data]);
 
@@ -131,7 +149,8 @@ export const MarkdownVideo: React.FC<MarkdownVideoProps> = ({ data }) => {
   );
 
   return (
-    <AbsoluteFill style={{ fontFamily: FONTS.body }}>
+    <TemplateThemeProvider theme={theme}>
+    <AbsoluteFill style={{ fontFamily: theme.typography.bodyFont }}>
       {/* Slide 序列 */}
       {data.slides.map((slide, i) => (
         <Sequence
@@ -176,5 +195,6 @@ export const MarkdownVideo: React.FC<MarkdownVideoProps> = ({ data }) => {
         startFrom={0}
       />
     </AbsoluteFill>
+    </TemplateThemeProvider>
   );
 };

@@ -127,7 +127,7 @@ export function buildScriptPrompt(
 // ─── Zod Schema（宽松模式，容忍 AI 输出的类型偏差） ───
 
 export const scriptSlideSchema = z.object({
-  pageIndex: z.coerce.number(),
+  pageIndex: z.coerce.number().optional(),
   heading: z.coerce.string(),
   bodyText: z.coerce.string(),
   narration: z.coerce.string(),
@@ -135,14 +135,21 @@ export const scriptSlideSchema = z.object({
 });
 
 export const videoScriptSchema = z.object({
-  title: z.coerce.string(),
+  title: z.coerce.string().optional().default("未命名视频"),
   subtitle: z.coerce.string().optional(),
   slides: z.array(scriptSlideSchema).min(1).max(15),
   style: z.coerce.string().optional().default("dark-tech"),
   totalEstimatedDuration: z.coerce.number().optional().default(45),
   endingCTA: z.coerce.string().optional().default("关注获取更多内容 🔔"),
   tags: z.array(z.coerce.string()).optional().default([]),
-});
+}).transform((data) => ({
+  ...data,
+  // 自动回填缺失的 pageIndex
+  slides: data.slides.map((slide, i) => ({
+    ...slide,
+    pageIndex: slide.pageIndex ?? i,
+  })),
+}));
 
 export type VideoScriptResponse = z.infer<typeof videoScriptSchema>;
 

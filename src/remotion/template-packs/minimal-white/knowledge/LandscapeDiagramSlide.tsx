@@ -1,5 +1,6 @@
 // minimal-white / Knowledge / LandscapeDiagramSlide
 import React from "react";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 
 interface Props {
@@ -9,10 +10,10 @@ interface Props {
   connections?: string[];
 }
 
-const ACCENT = "#3b82f6";
 
 export const LandscapeDiagramSlide: React.FC<Props> = ({ heading, diagramType, nodes }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
   const headingOpacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: "clamp" });
 
   const isFlow = diagramType === "flow";
@@ -20,7 +21,7 @@ export const LandscapeDiagramSlide: React.FC<Props> = ({ heading, diagramType, n
   return (
     <AbsoluteFill
       style={{
-        background: "#fafafa",
+        background: theme.colors.background,
         display: "flex",
         flexDirection: "column",
         padding: "70px 100px",
@@ -29,9 +30,9 @@ export const LandscapeDiagramSlide: React.FC<Props> = ({ heading, diagramType, n
       <h2 style={{
         fontSize: 44,
         fontWeight: 700,
-        color: "#1a1a1a",
+        color: theme.colors.text,
         margin: "0 0 50px",
-        fontFamily: "'Noto Serif SC', serif",
+        fontFamily: theme.typography.headingFont,
         opacity: headingOpacity,
       }}>
         {heading}
@@ -57,7 +58,7 @@ export const LandscapeDiagramSlide: React.FC<Props> = ({ heading, diagramType, n
                   padding: "24px 32px",
                   background: "#fff",
                   borderRadius: 16,
-                  border: `1px solid ${ACCENT}20`,
+                  border: `1px solid ${theme.colors.primary}20`,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
                   textAlign: "center",
                   opacity,
@@ -67,11 +68,11 @@ export const LandscapeDiagramSlide: React.FC<Props> = ({ heading, diagramType, n
                 }}
               >
                 {node.icon && <span style={{ fontSize: 36, display: "block", marginBottom: 8 }}>{node.icon}</span>}
-                <p style={{ fontSize: 22, fontWeight: 700, color: "#1a1a1a", margin: 0, fontFamily: "'Inter', sans-serif" }}>
+                <p style={{ fontSize: 22, fontWeight: 700, color: theme.colors.text, margin: 0, fontFamily: theme.typography.bodyFont }}>
                   {node.label}
                 </p>
                 {node.description && (
-                  <p style={{ fontSize: 16, color: "#888", margin: "6px 0 0", fontFamily: "'Inter', sans-serif" }}>
+                  <p style={{ fontSize: 16, color: theme.colors.textMuted, margin: "6px 0 0", fontFamily: theme.typography.bodyFont }}>
                     {node.description}
                   </p>
                 )}
@@ -79,9 +80,9 @@ export const LandscapeDiagramSlide: React.FC<Props> = ({ heading, diagramType, n
               {isFlow && i < nodes.length - 1 && (
                 <div style={{
                   fontSize: 24,
-                  color: ACCENT,
+                  color: theme.colors.primary,
                   opacity: interpolate(frame, [delay + 8, delay + 18], [0, 1], { extrapolateRight: "clamp" }),
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: theme.typography.bodyFont,
                 }}>
                   →
                 </div>

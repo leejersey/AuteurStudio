@@ -1,5 +1,6 @@
 // minimal-white / Algo / GridBoard — 极简白色算法网格
 import React from "react";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 import { interpolate, useCurrentFrame } from "remotion";
 import type { CellState } from "@/lib/types/algo-video";
 
@@ -23,6 +24,7 @@ const STATE_COLORS: Record<CellState["state"], { bg: string; text: string; borde
 
 export const GridBoard: React.FC<Props> = ({ grid, highlights }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
   const boardOpacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: "clamp" });
 
   if (!grid.length) return null;

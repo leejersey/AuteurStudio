@@ -6,11 +6,22 @@ import Link from "next/link";
 interface ControlPanelProps {
   onExport?: () => Promise<void>;
   hasVideoData?: boolean;
+  /** 迭代二：切换模板配置面板 */
+  onToggleConfig?: () => void;
+  /** 迭代二：配置面板当前是否打开 */
+  isConfigOpen?: boolean;
+  /** 配音设置 */
+  onToggleVoice?: () => void;
+  isVoiceOpen?: boolean;
 }
 
 export default function ControlPanel({
   onExport,
   hasVideoData,
+  onToggleConfig,
+  isConfigOpen,
+  onToggleVoice,
+  isVoiceOpen,
 }: ControlPanelProps) {
   const [isExporting, setIsExporting] = useState(false);
 
@@ -66,6 +77,30 @@ export default function ControlPanel({
         </div>
       </div>
 
+      {/* 模板设置 — 打开 TemplateConfigPanel */}
+      <div className="group relative">
+        <button
+          onClick={onToggleConfig}
+          className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all active:scale-90 ${
+            isConfigOpen
+              ? "bg-primary/15 border-primary/50 text-primary shadow-[0_0_12px_rgba(153,247,255,0.15)]"
+              : "bg-surface-container-high border-outline-variant/20 text-on-surface-variant hover:text-primary hover:border-primary/40"
+          }`}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{
+              fontVariationSettings: isConfigOpen ? "'FILL' 1" : "'FILL' 0",
+            }}
+          >
+            tune
+          </span>
+        </button>
+        <div className="absolute right-14 top-0 px-2 py-1 bg-surface-container-highest text-[10px] font-bold text-primary border border-primary/20 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+          模板设置
+        </div>
+      </div>
+
       {/* 模板中心 */}
       <div className="group relative">
         <Link href="/templates">
@@ -80,8 +115,20 @@ export default function ControlPanel({
 
       {/* 配音设置 */}
       <div className="group relative">
-        <button className="w-10 h-10 rounded-xl bg-surface-container-high border border-outline-variant/20 flex items-center justify-center text-on-surface-variant hover:text-secondary hover:border-secondary/40 transition-all active:scale-90">
-          <span className="material-symbols-outlined">settings_voice</span>
+        <button
+          onClick={onToggleVoice}
+          className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all active:scale-90 ${
+            isVoiceOpen
+              ? "bg-secondary/15 border-secondary/50 text-secondary shadow-[0_0_12px_rgba(172,138,255,0.15)]"
+              : "bg-surface-container-high border-outline-variant/20 text-on-surface-variant hover:text-secondary hover:border-secondary/40"
+          }`}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontVariationSettings: isVoiceOpen ? "'FILL' 1" : "'FILL' 0" }}
+          >
+            settings_voice
+          </span>
         </button>
         <div className="absolute right-14 top-0 px-2 py-1 bg-surface-container-highest text-[10px] font-bold text-secondary border border-secondary/20 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
           配音设置

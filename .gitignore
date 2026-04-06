@@ -32,8 +32,8 @@ Thumbs.db
 /tmp/
 
 # remotion render output
-/out/
 /renders/
+/public/renders/
 
 # stitch design assets (本地设计稿)
 /.stitch_downloads/
@@ -65,3 +65,4 @@ next-env.d.ts
 
 # agent / AI tool configs (本地 AI 工具配置)
 .gemini/
+.agent/skills/

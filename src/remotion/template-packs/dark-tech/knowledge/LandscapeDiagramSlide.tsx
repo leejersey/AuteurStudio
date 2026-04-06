@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { COLORS, FONTS } from "../../../styles/theme";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 
 interface Node {
   label: string;
@@ -21,12 +21,13 @@ export const LandscapeDiagramSlide: React.FC<Props> = ({
   nodes,
 }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
   const headingOpacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: "clamp" });
 
   return (
     <AbsoluteFill
       style={{
-        background: `linear-gradient(180deg, ${COLORS.background} 0%, #060810 100%)`,
+        background: `linear-gradient(180deg, ${theme.colors.background} 0%, #060810 100%)`,
         display: "flex",
         flexDirection: "column",
         padding: "40px 80px 130px",
@@ -37,8 +38,8 @@ export const LandscapeDiagramSlide: React.FC<Props> = ({
         style={{
           fontSize: 42,
           fontWeight: 700,
-          fontFamily: FONTS.headline,
-          color: COLORS.onSurface,
+          fontFamily: theme.typography.headingFont,
+          color: theme.colors.text,
           textAlign: "center",
           margin: "0 0 40px",
           opacity: headingOpacity,
@@ -67,6 +68,7 @@ export const LandscapeDiagramSlide: React.FC<Props> = ({
 // ─── Flow Diagram（流程图）───
 
 const FlowDiagram: React.FC<{ nodes: Node[]; frame: number }> = ({ nodes, frame }) => {
+  const theme = useTemplateTheme();
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
       {nodes.map((node, i) => {
@@ -84,8 +86,8 @@ const FlowDiagram: React.FC<{ nodes: Node[]; frame: number }> = ({ nodes, frame 
                 alignItems: "center",
                 gap: 10,
                 padding: "20px 28px",
-                background: `linear-gradient(135deg, ${COLORS.primary}15, ${COLORS.tertiary}10)`,
-                border: `1.5px solid ${COLORS.primary}30`,
+                background: `linear-gradient(135deg, ${theme.colors.primary}15, ${theme.colors.tertiary}10)`,
+                border: `1.5px solid ${theme.colors.primary}30`,
                 borderRadius: 16,
                 minWidth: 120,
                 opacity,
@@ -97,15 +99,15 @@ const FlowDiagram: React.FC<{ nodes: Node[]; frame: number }> = ({ nodes, frame 
                 style={{
                   fontSize: 22,
                   fontWeight: 600,
-                  color: COLORS.onSurface,
+                  color: theme.colors.text,
                   textAlign: "center",
-                  fontFamily: FONTS.body,
+                  fontFamily: theme.typography.bodyFont,
                 }}
               >
                 {node.label}
               </span>
               {node.description && (
-                <span style={{ fontSize: 16, color: COLORS.onSurfaceVariant, textAlign: "center" }}>
+                <span style={{ fontSize: 16, color: theme.colors.textMuted, textAlign: "center" }}>
                   {node.description}
                 </span>
               )}
@@ -114,7 +116,7 @@ const FlowDiagram: React.FC<{ nodes: Node[]; frame: number }> = ({ nodes, frame 
               <span
                 style={{
                   fontSize: 32,
-                  color: COLORS.primary,
+                  color: theme.colors.primary,
                   opacity: arrowOpacity,
                   fontWeight: 700,
                 }}
@@ -132,6 +134,7 @@ const FlowDiagram: React.FC<{ nodes: Node[]; frame: number }> = ({ nodes, frame 
 // ─── Layers Diagram（分层架构）───
 
 const LayersDiagram: React.FC<{ nodes: Node[]; frame: number }> = ({ nodes, frame }) => {
+  const theme = useTemplateTheme();
   return (
     <div
       style={{
@@ -146,7 +149,7 @@ const LayersDiagram: React.FC<{ nodes: Node[]; frame: number }> = ({ nodes, fram
         const delay = i * 8;
         const opacity = interpolate(frame, [10 + delay, 25 + delay], [0, 1], { extrapolateRight: "clamp" });
         const x = interpolate(frame, [10 + delay, 25 + delay], [-40, 0], { extrapolateRight: "clamp" });
-        const colors = [COLORS.primary, COLORS.tertiary, COLORS.secondary, "#6366f1", "#f59e0b"];
+        const colors = [theme.colors.primary, theme.colors.tertiary, theme.colors.secondary, "#6366f1", "#f59e0b"];
         const color = colors[i % colors.length];
 
         return (
@@ -166,11 +169,11 @@ const LayersDiagram: React.FC<{ nodes: Node[]; frame: number }> = ({ nodes, fram
           >
             {node.icon && <span style={{ fontSize: 34 }}>{node.icon}</span>}
             <div>
-              <span style={{ fontSize: 24, fontWeight: 700, color: COLORS.onSurface, fontFamily: FONTS.body }}>
+              <span style={{ fontSize: 24, fontWeight: 700, color: theme.colors.text, fontFamily: theme.typography.bodyFont }}>
                 {node.label}
               </span>
               {node.description && (
-                <span style={{ fontSize: 18, color: COLORS.onSurfaceVariant, marginLeft: 12 }}>
+                <span style={{ fontSize: 18, color: theme.colors.textMuted, marginLeft: 12 }}>
                   {node.description}
                 </span>
               )}
@@ -185,6 +188,7 @@ const LayersDiagram: React.FC<{ nodes: Node[]; frame: number }> = ({ nodes, fram
 // ─── Compare Diagram（对比图）───
 
 const CompareDiagram: React.FC<{ nodes: Node[]; frame: number }> = ({ nodes, frame }) => {
+  const theme = useTemplateTheme();
   const mid = Math.ceil(nodes.length / 2);
   const left = nodes.slice(0, mid);
   const right = nodes.slice(mid);
@@ -205,19 +209,19 @@ const CompareDiagram: React.FC<{ nodes: Node[]; frame: number }> = ({ nodes, fra
                   alignItems: "center",
                   gap: 12,
                   padding: "14px 20px",
-                  background: gi === 0 ? `${COLORS.primary}12` : `${COLORS.tertiary}12`,
-                  border: `1px solid ${gi === 0 ? COLORS.primary : COLORS.tertiary}25`,
+                  background: gi === 0 ? `${theme.colors.primary}12` : `${theme.colors.tertiary}12`,
+                  border: `1px solid ${gi === 0 ? theme.colors.primary : theme.colors.tertiary}25`,
                   borderRadius: 12,
                   opacity,
                 }}
               >
                 {node.icon && <span style={{ fontSize: 32 }}>{node.icon}</span>}
                 <div>
-                  <span style={{ fontSize: 22, fontWeight: 600, color: COLORS.onSurface, fontFamily: FONTS.body }}>
+                  <span style={{ fontSize: 22, fontWeight: 600, color: theme.colors.text, fontFamily: theme.typography.bodyFont }}>
                     {node.label}
                   </span>
                   {node.description && (
-                    <p style={{ fontSize: 17, color: COLORS.onSurfaceVariant, margin: "4px 0 0" }}>
+                    <p style={{ fontSize: 17, color: theme.colors.textMuted, margin: "4px 0 0" }}>
                       {node.description}
                     </p>
                   )}

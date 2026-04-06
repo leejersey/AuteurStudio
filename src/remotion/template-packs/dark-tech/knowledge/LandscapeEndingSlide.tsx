@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { COLORS, FONTS } from "../../../styles/theme";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 
 interface Props {
   heading: string;
@@ -16,6 +16,7 @@ export const LandscapeEndingSlide: React.FC<Props> = ({
   callToAction,
 }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
   const headingOpacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: "clamp" });
   const summaryOpacity = interpolate(frame, [10, 25], [0, 1], { extrapolateRight: "clamp" });
   const takeawaysOpacity = interpolate(frame, [20, 35], [0, 1], { extrapolateRight: "clamp" });
@@ -24,8 +25,8 @@ export const LandscapeEndingSlide: React.FC<Props> = ({
   return (
     <AbsoluteFill
       style={{
-        background: `radial-gradient(ellipse at 50% 50%, ${COLORS.primary}10 0%, transparent 60%),
-                     linear-gradient(180deg, ${COLORS.background} 0%, #060810 100%)`,
+        background: `radial-gradient(ellipse at 50% 50%, ${theme.colors.primary}10 0%, transparent 60%),
+                     linear-gradient(180deg, ${theme.colors.background} 0%, #060810 100%)`,
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-start",
@@ -39,8 +40,8 @@ export const LandscapeEndingSlide: React.FC<Props> = ({
         style={{
           fontSize: 52,
           fontWeight: 800,
-          fontFamily: FONTS.headline,
-          color: COLORS.onSurface,
+          fontFamily: theme.typography.headingFont,
+          color: theme.colors.text,
           textAlign: "center",
           opacity: headingOpacity,
           margin: 0,
@@ -53,8 +54,8 @@ export const LandscapeEndingSlide: React.FC<Props> = ({
       <p
         style={{
           fontSize: 28,
-          color: COLORS.onSurfaceVariant,
-          fontFamily: FONTS.body,
+          color: theme.colors.textMuted,
+          fontFamily: theme.typography.bodyFont,
           textAlign: "center",
           opacity: summaryOpacity,
           maxWidth: 700,
@@ -82,12 +83,12 @@ export const LandscapeEndingSlide: React.FC<Props> = ({
               key={i}
               style={{
                 padding: "10px 20px",
-                background: `${COLORS.primary}12`,
-                border: `1px solid ${COLORS.primary}25`,
+                background: `${theme.colors.primary}12`,
+                border: `1px solid ${theme.colors.primary}25`,
                 borderRadius: 12,
                 fontSize: 22,
-                color: COLORS.onSurface,
-                fontFamily: FONTS.body,
+                color: theme.colors.text,
+                fontFamily: theme.typography.bodyFont,
                 fontWeight: 500,
               }}
             >
@@ -102,7 +103,7 @@ export const LandscapeEndingSlide: React.FC<Props> = ({
         <p
           style={{
             fontSize: 24,
-            color: COLORS.primary,
+            color: theme.colors.primary,
             fontWeight: 600,
             opacity: ctaOpacity,
             marginTop: 20,

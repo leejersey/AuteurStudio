@@ -87,12 +87,28 @@ export async function POST(req: NextRequest) {
       console.error("[/api/workflow/script] Zod 校验失败:", JSON.stringify(result.error.issues, null, 2));
       console.error("[/api/workflow/script] AI 原始输出:", text.slice(0, 500));
       // 尝试直接使用 parsed 数据（跳过严格校验）
-      if (parsed.title && parsed.slides && Array.isArray(parsed.slides)) {
-        console.warn("[/api/workflow/script] 跳过校验，使用原始数据");
+      if (Array.isArray(parsed.slides) && parsed.slides.length > 0) {
+        console.warn("[/api/workflow/script] 跳过校验，使用原始数据并补全缺失字段");
+        // 自动补全缺失字段
+        const patched = {
+          title: parsed.title || topic.title,
+          subtitle: parsed.subtitle || topic.angle,
+          slides: parsed.slides.map((s: Record<string, unknown>, i: number) => ({
+            pageIndex: typeof s.pageIndex === "number" ? s.pageIndex : i,
+            heading: s.heading || `第 ${i + 1} 页`,
+            bodyText: s.bodyText || "",
+            narration: s.narration || "",
+            visualNote: s.visualNote,
+          })),
+          style: parsed.style || "dark-tech",
+          totalEstimatedDuration: parsed.totalEstimatedDuration || 45,
+          endingCTA: parsed.endingCTA || "关注获取更多内容 🔔",
+          tags: parsed.tags || topic.tags || [],
+        };
         return NextResponse.json({
-          script: parsed,
+          script: patched,
           sourcesCount: research.sources.length,
-          warning: "部分字段未通过校验",
+          warning: "部分字段已自动补全",
         });
       }
       return NextResponse.json(

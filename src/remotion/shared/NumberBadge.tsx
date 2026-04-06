@@ -1,6 +1,6 @@
 import React from "react";
 import { useCurrentFrame, spring, useVideoConfig } from "remotion";
-import { COLORS, FONTS } from "../styles/theme";
+import { useTemplateTheme } from "../TemplateThemeContext";
 
 interface NumberBadgeProps {
   number: number;
@@ -15,6 +15,7 @@ export const NumberBadge: React.FC<NumberBadgeProps> = ({
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const theme = useTemplateTheme();
 
   const scale = spring({
     frame: Math.max(0, frame - delay),
@@ -22,18 +23,25 @@ export const NumberBadge: React.FC<NumberBadgeProps> = ({
     config: { damping: 12, mass: 0.5, stiffness: 200 },
   });
 
+  const badgeRadius =
+    theme.decoration.badgeStyle === "circle"
+      ? "50%"
+      : theme.decoration.badgeStyle === "pill"
+        ? `${size}px`
+        : "8px";
+
   return (
     <div
       style={{
         width: size,
         height: size,
-        borderRadius: "50%",
-        background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.primaryDim})`,
+        borderRadius: badgeRadius,
+        background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.primaryDim})`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         transform: `scale(${scale})`,
-        boxShadow: `0 0 20px ${COLORS.primary}40`,
+        boxShadow: `0 0 20px ${theme.colors.primary}40`,
         flexShrink: 0,
       }}
     >
@@ -41,8 +49,8 @@ export const NumberBadge: React.FC<NumberBadgeProps> = ({
         style={{
           fontSize: size * 0.45,
           fontWeight: 800,
-          color: COLORS.onPrimary,
-          fontFamily: FONTS.headline,
+          color: theme.colors.onPrimary,
+          fontFamily: theme.typography.headingFont,
         }}
       >
         {number}

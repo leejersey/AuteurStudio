@@ -1,6 +1,7 @@
 // minimal-white / Card / TitleSlide — 极简白色标题页
 // 布局：左对齐，大号衬线体，极简留白
 import React from "react";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import type { TitleSlide } from "@/lib/types/card-video";
 
@@ -9,10 +10,10 @@ interface Props {
   style?: "dark-tech" | "minimal-light" | "gradient-purple";
 }
 
-const ACCENT = "#3b82f6";
 
 export const TitleSlideComp: React.FC<Props> = ({ data }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
   const titleOpacity = interpolate(frame, [0, 25], [0, 1], { extrapolateRight: "clamp" });
   const titleX = interpolate(frame, [0, 25], [-30, 0], { extrapolateRight: "clamp" });
   const subtitleOpacity = interpolate(frame, [15, 35], [0, 1], { extrapolateRight: "clamp" });
@@ -22,7 +23,7 @@ export const TitleSlideComp: React.FC<Props> = ({ data }) => {
   return (
     <AbsoluteFill
       style={{
-        background: "#fafafa",
+        background: theme.colors.background,
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
@@ -35,11 +36,11 @@ export const TitleSlideComp: React.FC<Props> = ({ data }) => {
           opacity: catOpacity,
           fontSize: 18,
           fontWeight: 600,
-          color: ACCENT,
+          color: theme.colors.primary,
           letterSpacing: 3,
           textTransform: "uppercase",
           marginBottom: 24,
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: theme.typography.bodyFont,
         }}
       >
         {data.category}
@@ -50,12 +51,12 @@ export const TitleSlideComp: React.FC<Props> = ({ data }) => {
         style={{
           fontSize: 84,
           fontWeight: 800,
-          color: "#1a1a1a",
+          color: theme.colors.text,
           lineHeight: 1.15,
           margin: 0,
           opacity: titleOpacity,
           transform: `translateX(${titleX}px)`,
-          fontFamily: "'Noto Serif SC', serif",
+          fontFamily: theme.typography.headingFont,
           maxWidth: 800,
         }}
       >
@@ -67,7 +68,7 @@ export const TitleSlideComp: React.FC<Props> = ({ data }) => {
         style={{
           width: lineW,
           height: 4,
-          background: ACCENT,
+          background: theme.colors.primary,
           borderRadius: 2,
           marginTop: 40,
           marginBottom: 30,
@@ -79,10 +80,10 @@ export const TitleSlideComp: React.FC<Props> = ({ data }) => {
         style={{
           fontSize: 28,
           fontWeight: 400,
-          color: "#666",
+          color: theme.colors.textMuted,
           opacity: subtitleOpacity,
           margin: 0,
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: theme.typography.bodyFont,
           maxWidth: 600,
           lineHeight: 1.6,
         }}
@@ -98,7 +99,7 @@ export const TitleSlideComp: React.FC<Props> = ({ data }) => {
           right: 80,
           width: 60,
           height: 60,
-          border: `3px solid ${ACCENT}20`,
+          border: `3px solid ${theme.colors.primary}20`,
           borderRadius: 12,
           opacity: catOpacity,
         }}

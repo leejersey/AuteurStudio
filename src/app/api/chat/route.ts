@@ -5,6 +5,7 @@ import {
 } from "@/lib/deepseek";
 import { synthesizeSpeech } from "@/lib/volcengine-tts";
 import { saveProject, createProjectFromVideoData } from "@/lib/project-store";
+import { enrichSlidesWithImages } from "@/lib/unsplash";
 
 // 从文本长度估算朗读时长（中文 ~4 字/秒）
 function estimateDurationMs(text: string): number {
@@ -85,6 +86,13 @@ export async function POST(req: NextRequest) {
       // 为旁白合成 TTS 语音
       await synthesizeNarrations(videoData.narration);
 
+      // 为 slides 获取配图
+      if ("slides" in videoData && Array.isArray(videoData.slides)) {
+        console.log("[Unsplash] 开始为横屏视频 slides 获取配图...");
+        videoData.slides = await enrichSlidesWithImages(videoData.slides);
+        console.log("[Unsplash] 配图获取完成");
+      }
+
       const isAlgo = contentType === "algorithm";
       const resolvedVideoType = isAlgo ? "algo" : "knowledge";
       const stepsInfo = isAlgo && "steps" in videoData ? `${videoData.steps.length} 个动画步骤` : `${("slides" in videoData ? videoData.slides.length : 0)} 页`;
@@ -107,6 +115,11 @@ export async function POST(req: NextRequest) {
 
     // 默认：图文卡片视频
     const { videoData } = await generateCardVideoData(message);
+
+    // 为 slides 获取配图
+    console.log("[Unsplash] 开始为卡片视频 slides 获取配图...");
+    videoData.slides = await enrichSlidesWithImages(videoData.slides);
+    console.log("[Unsplash] 配图获取完成");
 
     // 自动保存项目
     const project = createProjectFromVideoData(

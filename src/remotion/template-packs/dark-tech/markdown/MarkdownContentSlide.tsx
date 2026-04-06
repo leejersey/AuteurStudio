@@ -1,7 +1,7 @@
 // Markdown 内容页 Slide — 要点列表渐入
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { COLORS, FONTS } from "../../../styles/theme";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 
 interface Props {
   heading: string;
@@ -10,6 +10,7 @@ interface Props {
 
 export const MarkdownContentSlide: React.FC<Props> = ({ heading, points }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
 
   const headingOpacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: "clamp" });
   const headingX = interpolate(frame, [0, 15], [-30, 0], { extrapolateRight: "clamp" });
@@ -17,8 +18,8 @@ export const MarkdownContentSlide: React.FC<Props> = ({ heading, points }) => {
   return (
     <AbsoluteFill
       style={{
-        background: COLORS.background,
-        fontFamily: FONTS.body,
+        background: theme.colors.background,
+        fontFamily: theme.typography.bodyFont,
         padding: "80px 100px",
         display: "flex",
         flexDirection: "column",
@@ -29,12 +30,12 @@ export const MarkdownContentSlide: React.FC<Props> = ({ heading, points }) => {
         style={{
           fontSize: 48,
           fontWeight: 700,
-          fontFamily: FONTS.headline,
-          color: COLORS.onSurface,
+          fontFamily: theme.typography.headingFont,
+          color: theme.colors.text,
           marginBottom: 50,
           opacity: headingOpacity,
           transform: `translateX(${headingX}px)`,
-          borderLeft: `4px solid ${COLORS.primary}`,
+          borderLeft: `4px solid ${theme.colors.primary}`,
           paddingLeft: 24,
         }}
       >
@@ -58,18 +59,18 @@ export const MarkdownContentSlide: React.FC<Props> = ({ heading, points }) => {
                 alignItems: "flex-start",
                 gap: 16,
                 padding: "16px 20px",
-                background: `${COLORS.surface}80`,
+                background: `${theme.colors.surface}80`,
                 borderRadius: 12,
-                borderLeft: `3px solid ${COLORS.primary}40`,
+                borderLeft: `3px solid ${theme.colors.primary}40`,
               }}
             >
               <span
                 style={{
                   fontSize: 20,
                   fontWeight: 800,
-                  color: COLORS.primary,
+                  color: theme.colors.primary,
                   minWidth: 30,
-                  fontFamily: FONTS.mono,
+                  fontFamily: theme.typography.monoFont,
                 }}
               >
                 {String(i + 1).padStart(2, "0")}
@@ -78,7 +79,7 @@ export const MarkdownContentSlide: React.FC<Props> = ({ heading, points }) => {
                 <p
                   style={{
                     fontSize: 24,
-                    color: COLORS.onSurface,
+                    color: theme.colors.text,
                     lineHeight: 1.6,
                     margin: 0,
                   }}
@@ -89,7 +90,7 @@ export const MarkdownContentSlide: React.FC<Props> = ({ heading, points }) => {
                   <p
                     style={{
                       fontSize: 18,
-                      color: COLORS.onSurfaceVariant,
+                      color: theme.colors.textMuted,
                       marginTop: 8,
                       lineHeight: 1.5,
                     }}

@@ -1,5 +1,6 @@
 // minimal-white / Markdown / MarkdownCodeSlide — 代码展示页（浅色主题）
 import React from "react";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import type { CodeTheme } from "@/lib/types/markdown-video";
 
@@ -12,10 +13,10 @@ interface Props {
   durationInFrames: number;
 }
 
-const ACCENT = "#3b82f6";
 
 export const MarkdownCodeSlide: React.FC<Props> = ({ heading, language, lines, highlightLines, durationInFrames }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
   const headingOpacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: "clamp" });
 
   // 逐行显示效果
@@ -23,13 +24,13 @@ export const MarkdownCodeSlide: React.FC<Props> = ({ heading, language, lines, h
   const lineAppearFrames = Math.min(durationInFrames * 0.6, totalLines * 4);
 
   return (
-    <AbsoluteFill style={{ background: "#fafafa", display: "flex", flexDirection: "column", padding: "60px 100px" }}>
+    <AbsoluteFill style={{ background: theme.colors.background, display: "flex", flexDirection: "column", padding: "60px 100px" }}>
       {/* 标题 + 语言标签 */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 30, opacity: headingOpacity }}>
-        <h2 style={{ fontSize: 40, fontWeight: 700, color: "#1a1a1a", margin: 0, fontFamily: "'Noto Serif SC', serif" }}>
+        <h2 style={{ fontSize: 40, fontWeight: 700, color: theme.colors.text, margin: 0, fontFamily: theme.typography.headingFont }}>
           {heading}
         </h2>
-        <span style={{ padding: "4px 14px", background: `${ACCENT}10`, border: `1px solid ${ACCENT}20`, borderRadius: 8, fontSize: 14, fontWeight: 600, color: ACCENT, fontFamily: "'Inter', sans-serif", textTransform: "uppercase" }}>
+        <span style={{ padding: "4px 14px", background: `${theme.colors.primary}10`, border: `1px solid ${theme.colors.primary}20`, borderRadius: 8, fontSize: 14, fontWeight: 600, color: theme.colors.primary, fontFamily: theme.typography.bodyFont, textTransform: "uppercase" }}>
           {language}
         </span>
       </div>
@@ -57,8 +58,8 @@ export const MarkdownCodeSlide: React.FC<Props> = ({ heading, language, lines, h
               style={{
                 display: "flex",
                 opacity: lineOpacity,
-                background: isHighlight ? `${ACCENT}08` : "transparent",
-                borderLeft: isHighlight ? `3px solid ${ACCENT}` : "3px solid transparent",
+                background: isHighlight ? `${theme.colors.primary}08` : "transparent",
+                borderLeft: isHighlight ? `3px solid ${theme.colors.primary}` : "3px solid transparent",
                 padding: "2px 12px",
                 borderRadius: 4,
               }}

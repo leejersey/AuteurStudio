@@ -1,6 +1,7 @@
 // src/lib/types/landscape-video.ts — 16:9 横屏视频统一类型
 
 import type { AlgoVideoData, NarrationSegment } from "./algo-video";
+import type { SlideImageFields } from "./card-video";
 
 // ─── 知识讲解视频数据 ───
 
@@ -25,7 +26,7 @@ export type LandscapeSlide =
   | LandscapeDiagramSlide
   | LandscapeEndingSlide;
 
-export interface LandscapeTitleSlide {
+export interface LandscapeTitleSlide extends SlideImageFields {
   type: "landscape_title";
   heading: string;            // 大标题
   subtitle: string;           // 副标题/一句话概括
@@ -33,7 +34,7 @@ export interface LandscapeTitleSlide {
   narrationIndex: number;
 }
 
-export interface LandscapeContentSlide {
+export interface LandscapeContentSlide extends SlideImageFields {
   type: "landscape_content";
   heading: string;            // 小标题
   points: {
@@ -44,7 +45,7 @@ export interface LandscapeContentSlide {
   narrationIndex: number;
 }
 
-export interface LandscapeDiagramSlide {
+export interface LandscapeDiagramSlide extends SlideImageFields {
   type: "landscape_diagram";
   heading: string;
   diagramType: "flow" | "layers" | "compare"; // 流程图 | 分层架构 | 对比
@@ -57,7 +58,7 @@ export interface LandscapeDiagramSlide {
   narrationIndex: number;
 }
 
-export interface LandscapeEndingSlide {
+export interface LandscapeEndingSlide extends SlideImageFields {
   type: "landscape_ending";
   heading: string;            // 总结标题
   summary: string;            // 一句话总结

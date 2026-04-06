@@ -34,6 +34,12 @@ export default function RootLayout({
         />
       </head>
       <body className="h-screen flex flex-col overflow-hidden bg-background text-on-surface">
+        {/* 全局环境光晕 (Ambient Glow) — 用 fixed 定位，不参与 flex 布局 */}
+        <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
+          <div className="absolute -top-[20%] -left-[10%] w-[70vw] h-[70vw] rounded-full bg-primary/5 blur-[120px] mix-blend-screen animate-[aurora-1_20s_ease-in-out_infinite_alternate]"></div>
+          <div className="absolute top-[40%] -right-[20%] w-[60vw] h-[60vw] rounded-full bg-secondary/5 blur-[100px] mix-blend-screen animate-[aurora-2_25s_ease-in-out_infinite_alternate]"></div>
+        </div>
+        {/* children 直接参与 body 的 flex 布局，不额外包裹 */}
         {children}
       </body>
     </html>

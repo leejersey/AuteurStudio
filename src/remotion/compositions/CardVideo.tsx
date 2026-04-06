@@ -5,6 +5,13 @@ import { TIMING } from "../styles/theme";
 import { SlideTransition } from "../shared/SlideTransition";
 import { getTemplate, getDefaultTemplateId } from "../template-registry";
 import type { CardSlideRenderers } from "../template-registry";
+import { TemplateThemeProvider } from "../TemplateThemeContext";
+import { mergeTheme } from "../template-theme";
+import type { DeepPartial, TemplateTheme } from "../template-theme";
+
+// 确保模板已注册（side-effect import）
+import "../template-packs/dark-tech";
+import "../template-packs/minimal-white";
 
 // 默认 BGM（无自定义时使用）
 const DEFAULT_BGM = "audio/bgm-tech-01.wav";
@@ -55,10 +62,22 @@ export const CardVideo: React.FC<CardVideoProps> = ({ data }) => {
     return <AbsoluteFill style={{ background: "#0b0e14" }} />;
   }
 
-  // 根据 templateId 获取对应的 slide 渲染器
+  // 根据 templateId 获取对应的 slide 渲染器和 theme
   const templateId = data.meta.templateId || getDefaultTemplateId();
   const template = getTemplate(templateId);
-  const renderers = template?.card || getTemplate(getDefaultTemplateId())!.card!;
+  const defaultTemplate = getTemplate(getDefaultTemplateId());
+
+  // 防御：模板尚未注册时显示加载中
+  if (!template && !defaultTemplate) {
+    return <AbsoluteFill style={{ background: "#0b0e14" }} />;
+  }
+
+  const resolvedTemplate = template || defaultTemplate!;
+  const renderers = resolvedTemplate.card!;
+  const baseTheme = resolvedTemplate.theme;
+  const theme = (data.meta as Record<string, unknown>).themeOverrides
+    ? mergeTheme(baseTheme, (data.meta as Record<string, unknown>).themeOverrides as DeepPartial<TemplateTheme>)
+    : baseTheme;
 
   const { fps } = TIMING;
   const MIN_SLIDE_FRAMES = 4 * fps; // 每页至少 4 秒
@@ -111,7 +130,8 @@ export const CardVideo: React.FC<CardVideoProps> = ({ data }) => {
   );
 
   return (
-    <AbsoluteFill style={{ backgroundColor: "#0b0e14" }}>
+    <TemplateThemeProvider theme={theme}>
+    <AbsoluteFill style={{ backgroundColor: theme.colors.background }}>
       {data.slides.map((slide, i) => (
         <Sequence
           key={i}
@@ -148,5 +168,6 @@ export const CardVideo: React.FC<CardVideoProps> = ({ data }) => {
         startFrom={0}
       />
     </AbsoluteFill>
+    </TemplateThemeProvider>
   );
 };

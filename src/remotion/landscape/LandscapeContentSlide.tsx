@@ -1,5 +1,6 @@
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { SlideImage } from "../shared/SlideImage";
 import { COLORS, FONTS } from "../styles/theme";
 
 interface Point {
@@ -11,16 +12,24 @@ interface Point {
 interface Props {
   heading: string;
   points: Point[];
+  imageUrl?: string;
+  imageCredit?: string;
 }
 
 export const LandscapeContentSlide: React.FC<Props> = ({
   heading,
   points,
+  imageUrl,
+  imageCredit,
 }) => {
   const frame = useCurrentFrame();
   const headingOpacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: "clamp" });
 
-  return (
+  // 安全限制：最多展示 4 个 point
+  const safePoints = points.slice(0, 4);
+  const fontSize = safePoints.length <= 2 ? 26 : 22;
+
+  const mainContent = (
     <AbsoluteFill
       style={{
         background: `linear-gradient(180deg, ${COLORS.background} 0%, #060810 100%)`,
@@ -72,12 +81,17 @@ export const LandscapeContentSlide: React.FC<Props> = ({
           justifyContent: "flex-start",
           paddingTop: 40,
           gap: 16,
+          overflow: "hidden",
         }}
       >
-        {points.map((point, i) => {
+        {safePoints.map((point, i) => {
           const delay = i * 8;
           const opacity = interpolate(frame, [10 + delay, 25 + delay], [0, 1], { extrapolateRight: "clamp" });
           const x = interpolate(frame, [10 + delay, 25 + delay], [30, 0], { extrapolateRight: "clamp" });
+
+          const displayText = point.text.length > 55
+            ? point.text.slice(0, 55) + "…"
+            : point.text;
 
           return (
             <div
@@ -92,30 +106,40 @@ export const LandscapeContentSlide: React.FC<Props> = ({
                 border: `1px solid ${COLORS.outlineVariant}25`,
                 opacity,
                 transform: `translateX(${x}px)`,
+                flexShrink: 0,
+                overflow: "hidden",
               }}
             >
               {point.icon && (
                 <span style={{ fontSize: 36, flexShrink: 0 }}>{point.icon}</span>
               )}
-              <div>
+              <div style={{ flex: 1, overflow: "hidden" }}>
                 <p
                   style={{
-                    fontSize: 26,
+                    fontSize,
                     fontWeight: 600,
                     color: COLORS.onSurface,
                     margin: 0,
                     fontFamily: FONTS.body,
+                    overflow: "hidden",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical" as const,
                   }}
                 >
-                  {point.text}
+                  {displayText}
                 </p>
                 {point.detail && (
                   <p
                     style={{
-                      fontSize: 19,
+                      fontSize: 18,
                       color: COLORS.onSurfaceVariant,
                       margin: "6px 0 0",
                       fontFamily: FONTS.body,
+                      overflow: "hidden",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 1,
+                      WebkitBoxOrient: "vertical" as const,
                     }}
                   >
                     {point.detail}
@@ -128,4 +152,24 @@ export const LandscapeContentSlide: React.FC<Props> = ({
       </div>
     </AbsoluteFill>
   );
+
+  if (imageUrl) {
+    return (
+      <AbsoluteFill>
+        <SlideImage
+          src={imageUrl}
+          layout="side"
+          sidePosition="right"
+          sideRatio={0.38}
+          credit={imageCredit}
+        >
+          {mainContent}
+        </SlideImage>
+      </AbsoluteFill>
+    );
+  }
+
+  return mainContent;
 };
+
+

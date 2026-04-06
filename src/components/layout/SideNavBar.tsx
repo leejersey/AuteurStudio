@@ -15,7 +15,7 @@ export default function SideNavBar() {
   ];
 
   return (
-    <aside className="h-screen w-64 border-r border-outline-variant/15 bg-background flex flex-col overflow-y-auto z-50 font-body">
+    <aside className="h-screen w-64 border-r border-white/5 bg-surface-container-high/80 backdrop-blur-2xl flex flex-col overflow-y-auto z-50 font-body shadow-[4px_0_32px_rgba(0,0,0,0.3)]">
       <div className="p-6 flex items-center gap-3">
         <div className="w-8 h-8 primary-gradient rounded-lg flex items-center justify-center text-on-primary-fixed">
           <span
@@ -41,20 +41,23 @@ export default function SideNavBar() {
             <Link
               key={item.label}
               href={item.href}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative overflow-hidden ${
                 isActive
-                  ? "text-primary bg-surface-container-high border-r-2 border-primary rounded-r-none"
-                  : "text-on-surface/60 hover:bg-surface-container-high hover:text-primary"
+                  ? "text-primary bg-primary/10 shadow-[inset_0_0_12px_rgba(153,247,255,0.05)]"
+                  : "text-on-surface/60 hover:bg-white/5 hover:text-on-surface"
               }`}
             >
+              {isActive && (
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary shadow-[0_0_10px_rgba(153,247,255,0.8)]"></div>
+              )}
               <span className="material-symbols-outlined">{item.icon}</span>
               <span className="font-medium text-sm">{item.label}</span>
             </Link>
           );
         })}
       </nav>
-      <div className="mt-auto p-4">
-        <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/15">
+      <div className="mt-auto p-4 relative">
+        <div className="bg-surface-container-highest/30 backdrop-blur-md p-4 rounded-2xl border border-white/5 shadow-inner">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden border border-primary/20 shrink-0">
               <img
@@ -69,7 +72,7 @@ export default function SideNavBar() {
               </p>
             </div>
           </div>
-          <button className="w-full py-2 bg-primary text-on-primary-fixed text-sm font-bold rounded-lg primary-gradient active:scale-95 transition-transform shadow-[0_0_20px_rgba(153,247,255,0.2)]">
+          <button className="w-full py-2 bg-gradient-to-br from-primary to-primary-container text-on-primary-fixed text-sm font-black rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-[0_0_20px_rgba(153,247,255,0.2)] hover:shadow-[0_0_30px_rgba(153,247,255,0.4)] tracking-wider">
             新建项目
           </button>
         </div>

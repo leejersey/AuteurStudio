@@ -34,7 +34,8 @@ function isMockMode(): boolean {
 
 export async function synthesizeSpeech(
   text: string,
-  voiceId = "BV001_streaming"
+  voiceId = "BV001_streaming",
+  speedRatio = 1.0
 ): Promise<TTSResult> {
   if (isMockMode()) {
     console.log("[TTS Mock] 生成静默音频，文本:", text.slice(0, 50));
@@ -56,7 +57,7 @@ export async function synthesizeSpeech(
     audio: {
       voice_type: voiceId,
       encoding: "mp3",
-      speed_ratio: 1.0,
+      speed_ratio: speedRatio,
       volume_ratio: 1.0,
       pitch_ratio: 1.0,
     },
@@ -128,9 +129,12 @@ function createSilentWav(durationSec: number): Buffer {
 // ─── 可用音色列表 ───
 
 export const AVAILABLE_VOICES = [
-  { id: "BV001_streaming", name: "通用女声", lang: "zh" },
-  { id: "BV002_streaming", name: "通用男声", lang: "zh" },
-  { id: "BV700_streaming", name: "灿灿 (女)", lang: "zh" },
-  { id: "BV701_streaming", name: "擎苍 (男)", lang: "zh" },
-  { id: "BV406_streaming", name: "知性女声", lang: "zh" },
+  { id: "BV700_streaming", name: "灿灿", desc: "活泼甜美女声", lang: "zh", gender: "female" as const },
+  { id: "BV701_streaming", name: "擎苍", desc: "磁性低沉男声", lang: "zh", gender: "male" as const },
+  { id: "BV001_streaming", name: "通用女声", desc: "标准播报女声", lang: "zh", gender: "female" as const },
+  { id: "BV002_streaming", name: "通用男声", desc: "标准播报男声", lang: "zh", gender: "male" as const },
+  { id: "BV406_streaming", name: "知性女声", desc: "温柔知性风格", lang: "zh", gender: "female" as const },
+  { id: "BV407_streaming", name: "活力男声", desc: "年轻活力风格", lang: "zh", gender: "male" as const },
+  { id: "BV123_streaming", name: "阳光男声", desc: "温暖阳光少年", lang: "zh", gender: "male" as const },
+  { id: "BV102_streaming", name: "儿童女声", desc: "甜美童声", lang: "zh", gender: "female" as const },
 ];

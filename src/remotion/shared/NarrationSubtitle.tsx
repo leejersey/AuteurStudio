@@ -1,8 +1,7 @@
 // remotion/shared/NarrationSubtitle.tsx — 旁白字幕层（共享组件）
-// 从 algo/NarrationSubtitle.tsx 提升到 shared/ 供所有模板复用
 import React from "react";
 import { interpolate, useCurrentFrame } from "remotion";
-import { COLORS, FONTS } from "../styles/theme";
+import { useTemplateTheme } from "../TemplateThemeContext";
 import type { NarrationSegment } from "@/lib/types/algo-video";
 
 interface NarrationSubtitleProps {
@@ -13,6 +12,7 @@ export const NarrationSubtitle: React.FC<NarrationSubtitleProps> = ({
   segment,
 }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
 
   // 从底部滑入
   const slideUp = interpolate(frame, [0, 12], [20, 0], {
@@ -22,7 +22,6 @@ export const NarrationSubtitle: React.FC<NarrationSubtitleProps> = ({
     extrapolateRight: "clamp",
   });
 
-  // 基于字幕时间戳的逐词高亮
   const currentTimeMs = (frame / 30) * 1000;
 
   return (
@@ -30,15 +29,17 @@ export const NarrationSubtitle: React.FC<NarrationSubtitleProps> = ({
       style={{
         position: "absolute",
         bottom: 100,
-        left: 80,
-        right: 80,
-        padding: "16px 28px",
-        background: `${COLORS.surfaceHigh}90`,
-        backdropFilter: "blur(20px)",
-        borderRadius: 14,
-        border: `1px solid ${COLORS.outlineVariant}15`,
-        transform: `translateY(${slideUp}px)`,
+        left: "50%",
+        transform: `translate(-50%, ${slideUp}px)`, // 居中 + 动画
+        padding: "20px 44px",
+        background: "rgba(255, 255, 255, 0.05)",
+        backdropFilter: "blur(32px)",
+        borderRadius: 50,
+        border: `1px solid rgba(255, 255, 255, 0.12)`,
+        boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
         opacity,
+        maxWidth: "85%",
+        textAlign: "center",
       }}
     >
       {segment.timestamps ? (
@@ -46,7 +47,7 @@ export const NarrationSubtitle: React.FC<NarrationSubtitleProps> = ({
         <p
           style={{
             fontSize: 28,
-            fontFamily: FONTS.body,
+            fontFamily: theme.typography.bodyFont,
             fontStyle: "italic",
             lineHeight: 1.5,
             fontWeight: 500,
@@ -64,12 +65,16 @@ export const NarrationSubtitle: React.FC<NarrationSubtitleProps> = ({
                 key={i}
                 style={{
                   color: isActive
-                    ? COLORS.primary
+                    ? theme.colors.primary
                     : isPast
-                      ? COLORS.onSurface
-                      : `${COLORS.onSurface}60`,
-                  fontWeight: isActive ? 700 : 500,
-                  transition: "color 0.15s ease",
+                      ? theme.colors.text
+                      : `${theme.colors.text}60`,
+                  fontWeight: isActive ? 800 : 500,
+                  display: "inline-block",
+                  transform: isActive ? "scale(1.05) translateY(-2px)" : "scale(1) translateY(0)",
+                  textShadow: isActive ? `0 0 20px ${theme.colors.primary}80` : "none",
+                  transition: "color 0.2s ease, transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), text-shadow 0.2s ease",
+                  margin: "0 2px",
                 }}
               >
                 {ts.word}
@@ -83,11 +88,11 @@ export const NarrationSubtitle: React.FC<NarrationSubtitleProps> = ({
         <p
           style={{
             fontSize: 28,
-            fontFamily: FONTS.body,
+            fontFamily: theme.typography.bodyFont,
             fontStyle: "italic",
             lineHeight: 1.5,
             fontWeight: 500,
-            color: COLORS.onSurface,
+            color: theme.colors.text,
             margin: 0,
           }}
         >

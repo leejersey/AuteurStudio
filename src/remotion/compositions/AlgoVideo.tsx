@@ -1,11 +1,18 @@
 import React, { useCallback, useMemo } from "react";
 import { AbsoluteFill, Sequence, Audio, staticFile, interpolate } from "remotion";
 import type { AlgoVideoData } from "@/lib/types/algo-video";
-import { COLORS, FONTS, TIMING } from "../styles/theme";
+import { TIMING } from "../styles/theme";
 import { AnimatedText } from "../shared/AnimatedText";
 import { getTemplate, getDefaultTemplateId } from "../template-registry";
 import type { AlgoSlideRenderers } from "../template-registry";
 import { NarrationSubtitle } from "../shared/NarrationSubtitle";
+import { TemplateThemeProvider } from "../TemplateThemeContext";
+import { mergeTheme } from "../template-theme";
+import type { DeepPartial, TemplateTheme } from "../template-theme";
+
+// 确保模板已注册（side-effect import）
+import "../template-packs/dark-tech";
+import "../template-packs/minimal-white";
 
 const DEFAULT_BGM = "audio/bgm-tech-01.wav";
 const MIN_STEP_FRAMES = 3 * TIMING.fps; // 最短 3 秒
@@ -52,10 +59,21 @@ export const AlgoVideo: React.FC<AlgoVideoProps> = ({ data }) => {
     return <AbsoluteFill style={{ background: "#0b0e14" }} />;
   }
 
-  // 根据 templateId 获取对应的 slide 渲染器
+  // 根据 templateId 获取对应的 slide 渲染器和 theme
   const templateId = data.meta.templateId || getDefaultTemplateId();
   const tpl = getTemplate(templateId);
-  const renderers = tpl?.algo || getTemplate(getDefaultTemplateId())!.algo!;
+  const defaultTemplate = getTemplate(getDefaultTemplateId());
+
+  if (!tpl && !defaultTemplate) {
+    return <AbsoluteFill style={{ background: "#0b0e14" }} />;
+  }
+
+  const resolvedTemplate = tpl || defaultTemplate!;
+  const renderers = resolvedTemplate.algo!;
+  const baseTheme = resolvedTemplate.theme;
+  const theme = (data.meta as Record<string, unknown>).themeOverrides
+    ? mergeTheme(baseTheme, (data.meta as Record<string, unknown>).themeOverrides as DeepPartial<TemplateTheme>)
+    : baseTheme;
 
   // 各步的帧数（基于旁白时长）
   const stepDurations = useMemo(() => getStepDurations(data), [data]);
@@ -119,10 +137,11 @@ export const AlgoVideo: React.FC<AlgoVideoProps> = ({ data }) => {
   );
 
   return (
+    <TemplateThemeProvider theme={theme}>
     <AbsoluteFill
       style={{
-        background: `linear-gradient(180deg, ${COLORS.background} 0%, #060810 100%)`,
-        fontFamily: FONTS.body,
+        background: `linear-gradient(180deg, ${theme.colors.background} 0%, #060810 100%)`,
+        fontFamily: theme.typography.bodyFont,
       }}
     >
       {/* 标题栏 */}
@@ -141,15 +160,15 @@ export const AlgoVideo: React.FC<AlgoVideoProps> = ({ data }) => {
           text={data.meta.title}
           mode="slideUp"
           fontSize={36}
-          fontFamily={FONTS.headline}
+          fontFamily={theme.typography.headingFont}
           fontWeight={700}
-          color={COLORS.onSurface}
+          color={theme.colors.text}
         />
         <div
           style={{
             padding: "6px 16px",
-            background: `${COLORS.primary}15`,
-            border: `1px solid ${COLORS.primary}30`,
+            background: `${theme.colors.primary}15`,
+            border: `1px solid ${theme.colors.primary}30`,
             borderRadius: 20,
           }}
         >
@@ -157,7 +176,7 @@ export const AlgoVideo: React.FC<AlgoVideoProps> = ({ data }) => {
             style={{
               fontSize: 14,
               fontWeight: 700,
-              color: COLORS.primary,
+              color: theme.colors.primary,
               letterSpacing: 2,
             }}
           >
@@ -218,5 +237,6 @@ export const AlgoVideo: React.FC<AlgoVideoProps> = ({ data }) => {
         startFrom={0}
       />
     </AbsoluteFill>
+    </TemplateThemeProvider>
   );
 };

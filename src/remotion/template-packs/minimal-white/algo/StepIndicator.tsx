@@ -1,5 +1,6 @@
 // minimal-white / Algo / StepIndicator
 import React from "react";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 import { interpolate, useCurrentFrame } from "remotion";
 
 interface StepIndicatorProps {
@@ -13,6 +14,7 @@ const ACCENT = "#3b82f6";
 
 export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, totalSteps, annotation, description }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
   const opacity = interpolate(frame, [0, 12], [0, 1], { extrapolateRight: "clamp" });
 
   return (

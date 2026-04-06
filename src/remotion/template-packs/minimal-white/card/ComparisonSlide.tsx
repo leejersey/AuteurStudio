@@ -1,5 +1,6 @@
 // minimal-white / Card / ComparisonSlide — 极简白色对比页
 import React from "react";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import type { ComparisonSlide } from "@/lib/types/card-video";
 
@@ -8,10 +9,10 @@ interface Props {
   style?: "dark-tech" | "minimal-light" | "gradient-purple";
 }
 
-const ACCENT = "#3b82f6";
 
 export const ComparisonSlideComp: React.FC<Props> = ({ data }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
   const headingOpacity = interpolate(frame, [0, 15], [0, 1], { extrapolateRight: "clamp" });
   const leftOpacity = interpolate(frame, [10, 25], [0, 1], { extrapolateRight: "clamp" });
   const rightOpacity = interpolate(frame, [18, 33], [0, 1], { extrapolateRight: "clamp" });
@@ -21,13 +22,13 @@ export const ComparisonSlideComp: React.FC<Props> = ({ data }) => {
       style={{
         flex: 1,
         padding: "32px 28px",
-        background: isRight ? `${ACCENT}06` : "#fff",
+        background: isRight ? `${theme.colors.primary}06` : "#fff",
         borderRadius: 16,
-        border: `1px solid ${isRight ? `${ACCENT}20` : "#e5e7eb"}`,
+        border: `1px solid ${isRight ? `${theme.colors.primary}20` : theme.colors.border}`,
         opacity: isRight ? rightOpacity : leftOpacity,
       }}
     >
-      <h3 style={{ fontSize: 26, fontWeight: 700, color: "#1a1a1a", margin: "0 0 24px", fontFamily: "'Noto Serif SC', serif" }}>
+      <h3 style={{ fontSize: 26, fontWeight: 700, color: theme.colors.text, margin: "0 0 24px", fontFamily: theme.typography.headingFont }}>
         {side.title}
       </h3>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -42,7 +43,7 @@ export const ComparisonSlideComp: React.FC<Props> = ({ data }) => {
                 flexShrink: 0,
               }}
             />
-            <span style={{ fontSize: 22, color: "#444", fontFamily: "'Inter', sans-serif" }}>{item.text}</span>
+            <span style={{ fontSize: 22, color: "#444", fontFamily: theme.typography.bodyFont }}>{item.text}</span>
           </div>
         ))}
       </div>
@@ -52,7 +53,7 @@ export const ComparisonSlideComp: React.FC<Props> = ({ data }) => {
   return (
     <AbsoluteFill
       style={{
-        background: "#fafafa",
+        background: theme.colors.background,
         display: "flex",
         flexDirection: "column",
         padding: "80px 60px",
@@ -61,9 +62,9 @@ export const ComparisonSlideComp: React.FC<Props> = ({ data }) => {
       <h2 style={{
         fontSize: 44,
         fontWeight: 700,
-        color: "#1a1a1a",
+        color: theme.colors.text,
         margin: "0 0 40px",
-        fontFamily: "'Noto Serif SC', serif",
+        fontFamily: theme.typography.headingFont,
         opacity: headingOpacity,
       }}>
         {data.heading}

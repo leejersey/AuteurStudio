@@ -6,6 +6,7 @@ import type React from "react";
 // ─── 复用现有类型 ───
 
 import type { VideoType } from "@/lib/renderer";
+import type { TemplateTheme } from "./template-theme";
 
 // ─── Slide 渲染器 Props 接口 ───
 // 各模板需要实现的组件签名（与现有组件 props 保持一致）
@@ -56,6 +57,8 @@ export interface KnowledgeSlideRenderers {
   LandscapeContentSlide: React.FC<{
     heading: string;
     points: { icon?: string; text: string; detail?: string }[];
+    imageUrl?: string;
+    imageCredit?: string;
   }>;
   LandscapeDiagramSlide: React.FC<{
     heading: string;
@@ -118,6 +121,7 @@ export interface AlgoSlideRenderers {
 
 export interface VideoTemplate {
   info: TemplateInfo;
+  theme: TemplateTheme;           // 主题视觉配置
   card?: CardSlideRenderers;
   knowledge?: KnowledgeSlideRenderers;
   markdown?: MarkdownSlideRenderers;

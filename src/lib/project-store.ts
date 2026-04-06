@@ -1,10 +1,11 @@
 // src/lib/project-store.ts — 项目持久化存储服务
-// 使用 JSON 文件存储，适用于 MVP 阶段
+// 使用 PostgreSQL + Drizzle ORM
 
-import fs from "fs/promises";
-import path from "path";
+import { db } from "./db";
+import { videoProjects } from "./db/schema";
+import { eq, desc, ilike, or, sql } from "drizzle-orm";
 
-// ─── 项目类型定义 ───
+// ─── 项目类型定义（保持与旧接口兼容）───
 
 export interface VideoProject {
   id: string;
@@ -33,35 +34,25 @@ export interface ProjectStats {
   totalStorageBytes: number;
 }
 
-// ─── 存储路径配置 ───
+// ─── DB 行 → VideoProject 转换 ───
 
-const DATA_DIR = path.resolve(process.cwd(), ".data");
-const PROJECTS_FILE = path.join(DATA_DIR, "projects.json");
-
-// ─── 持久化读写辅助 ───
-
-async function ensureDataDir(): Promise<void> {
-  try {
-    await fs.access(DATA_DIR);
-  } catch {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-  }
-}
-
-async function readProjects(): Promise<VideoProject[]> {
-  await ensureDataDir();
-  try {
-    const raw = await fs.readFile(PROJECTS_FILE, "utf-8");
-    return JSON.parse(raw) as VideoProject[];
-  } catch {
-    // 文件不存在时返回空数组
-    return [];
-  }
-}
-
-async function writeProjects(projects: VideoProject[]): Promise<void> {
-  await ensureDataDir();
-  await fs.writeFile(PROJECTS_FILE, JSON.stringify(projects, null, 2), "utf-8");
+function toVideoProject(row: typeof videoProjects.$inferSelect): VideoProject {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    videoType: row.videoType as VideoProject["videoType"],
+    videoData: row.videoData,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    duration: row.duration,
+    aspectRatio: row.aspectRatio as VideoProject["aspectRatio"],
+    tags: row.tags ?? [],
+    thumbnail: row.thumbnail ?? undefined,
+    renderStatus: (row.renderStatus as VideoProject["renderStatus"]) ?? undefined,
+    renderOutputPath: row.renderOutputPath ?? undefined,
+    renderProgress: row.renderProgress ?? undefined,
+  };
 }
 
 // ─── CRUD 操作 ───
@@ -71,88 +62,145 @@ export async function listProjects(filter?: {
   type?: "card" | "algo" | "knowledge" | "markdown";
   search?: string;
 }): Promise<VideoProject[]> {
-  let projects = await readProjects();
+  const conditions = [];
 
   // 按类型筛选
   if (filter?.type) {
-    projects = projects.filter((p) => p.videoType === filter.type);
+    conditions.push(eq(videoProjects.videoType, filter.type));
   }
 
-  // 按搜索关键字筛选（标题 + 标签）
+  // 按搜索关键字筛选（标题 + 描述）
   if (filter?.search) {
-    const q = filter.search.toLowerCase();
-    projects = projects.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.tags.some((t) => t.toLowerCase().includes(q)) ||
-        p.description.toLowerCase().includes(q)
+    const pattern = `%${filter.search}%`;
+    conditions.push(
+      or(
+        ilike(videoProjects.title, pattern),
+        ilike(videoProjects.description, pattern)
+      )!
     );
   }
 
-  // 按创建时间倒序
-  projects.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  const rows = await db
+    .select()
+    .from(videoProjects)
+    .where(conditions.length > 0 ? (conditions.length === 1 ? conditions[0] : sql`${conditions[0]} AND ${conditions[1]}`) : undefined)
+    .orderBy(desc(videoProjects.createdAt));
 
-  return projects;
+  return rows.map(toVideoProject);
 }
 
 /** 获取单个项目 */
 export async function getProject(
   id: string
 ): Promise<VideoProject | undefined> {
-  const projects = await readProjects();
-  return projects.find((p) => p.id === id);
+  const rows = await db
+    .select()
+    .from(videoProjects)
+    .where(eq(videoProjects.id, id))
+    .limit(1);
+
+  return rows.length > 0 ? toVideoProject(rows[0]) : undefined;
 }
 
-/** 保存项目（新增或更新） */
+/** 保存项目（新增或更新 — upsert） */
 export async function saveProject(
   project: VideoProject
 ): Promise<VideoProject> {
-  const projects = await readProjects();
-  const existingIndex = projects.findIndex((p) => p.id === project.id);
+  const now = new Date();
 
-  if (existingIndex !== -1) {
-    // 更新
-    projects[existingIndex] = { ...projects[existingIndex], ...project, updatedAt: new Date().toISOString() };
-  } else {
-    // 新增
-    projects.push(project);
-  }
+  const rows = await db
+    .insert(videoProjects)
+    .values({
+      id: project.id,
+      title: project.title,
+      description: project.description,
+      videoType: project.videoType,
+      videoData: project.videoData ?? {},
+      createdAt: new Date(project.createdAt),
+      updatedAt: now,
+      duration: project.duration,
+      aspectRatio: project.aspectRatio,
+      tags: project.tags,
+      thumbnail: project.thumbnail ?? null,
+      renderStatus: project.renderStatus ?? "idle",
+      renderOutputPath: project.renderOutputPath ?? null,
+      renderProgress: project.renderProgress ?? 0,
+    })
+    .onConflictDoUpdate({
+      target: videoProjects.id,
+      set: {
+        title: project.title,
+        description: project.description,
+        videoType: project.videoType,
+        videoData: project.videoData ?? {},
+        updatedAt: now,
+        duration: project.duration,
+        aspectRatio: project.aspectRatio,
+        tags: project.tags,
+        thumbnail: project.thumbnail ?? null,
+        renderStatus: project.renderStatus ?? "idle",
+        renderOutputPath: project.renderOutputPath ?? null,
+        renderProgress: project.renderProgress ?? 0,
+      },
+    })
+    .returning();
 
-  await writeProjects(projects);
-  return project;
+  return toVideoProject(rows[0]);
 }
 
 /** 删除项目 */
 export async function deleteProject(id: string): Promise<boolean> {
-  const projects = await readProjects();
-  const filtered = projects.filter((p) => p.id !== id);
+  const result = await db
+    .delete(videoProjects)
+    .where(eq(videoProjects.id, id))
+    .returning({ id: videoProjects.id });
 
-  if (filtered.length === projects.length) {
-    return false; // 不存在
-  }
-
-  await writeProjects(filtered);
-  return true;
+  return result.length > 0;
 }
 
 /** 获取统计数据 */
 export async function getProjectStats(): Promise<ProjectStats> {
-  const projects = await readProjects();
+  const rows = await db
+    .select({
+      videoType: videoProjects.videoType,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(videoProjects)
+    .groupBy(videoProjects.videoType);
 
-  return {
-    totalProjects: projects.length,
-    cardCount: projects.filter((p) => p.videoType === "card").length,
-    algoCount: projects.filter((p) => p.videoType === "algo").length,
-    knowledgeCount: projects.filter((p) => p.videoType === "knowledge").length,
-    markdownCount: projects.filter((p) => p.videoType === "markdown").length,
-    totalRenderTimeMs: 0, // 暂未追踪
-    totalStorageBytes: 0, // 暂未追踪
+  const stats: ProjectStats = {
+    totalProjects: 0,
+    cardCount: 0,
+    algoCount: 0,
+    knowledgeCount: 0,
+    markdownCount: 0,
+    totalRenderTimeMs: 0,
+    totalStorageBytes: 0,
   };
+
+  for (const row of rows) {
+    const count = Number(row.count);
+    stats.totalProjects += count;
+    switch (row.videoType) {
+      case "card":
+        stats.cardCount = count;
+        break;
+      case "algo":
+        stats.algoCount = count;
+        break;
+      case "knowledge":
+        stats.knowledgeCount = count;
+        break;
+      case "markdown":
+        stats.markdownCount = count;
+        break;
+    }
+  }
+
+  return stats;
 }
 
-// ─── 辅助函数：从视频数据创建项目 ───
+// ─── 辅助函数：从视频数据创建项目（纯函数，不变）───
 
 export function createProjectFromVideoData(
   videoData: Record<string, unknown>,

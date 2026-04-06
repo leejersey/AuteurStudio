@@ -122,11 +122,16 @@ export function useWorkflow() {
         }
 
         const data = await res.json();
+        // 自动将选题标题填充为视频标题
+        const scriptWithTitle = {
+          ...data.script,
+          title: state.selectedTopic?.title || data.script.title,
+        };
         setState((prev) => ({
           ...prev,
           stage: "script",
-          script: data.script,
-          editedScript: data.script,
+          script: scriptWithTitle,
+          editedScript: scriptWithTitle,
           history: [...prev.history, prev.stage],
           isLoading: false,
           error: null,
@@ -196,6 +201,22 @@ export function useWorkflow() {
     [patch]
   );
 
+  // ─── 配音设置 ───
+
+  const setVoiceId = useCallback(
+    (voiceId: string) => {
+      patch({ voiceId });
+    },
+    [patch]
+  );
+
+  const setVoiceSpeed = useCallback(
+    (voiceSpeed: number) => {
+      patch({ voiceSpeed });
+    },
+    [patch]
+  );
+
   // ─── 阶段 2→3: 确认文案并生成视频 ───
 
   const confirmAndGenerate = useCallback(async () => {
@@ -221,11 +242,15 @@ export function useWorkflow() {
             markdownSlides: state.markdownSlides,
             theme: state.codeTheme,
             templateId: state.templateId,
+            voiceId: state.voiceId,
+            voiceSpeed: state.voiceSpeed,
           }
         : {
             script: finalScript,
             videoType: state.videoType,
             templateId: state.templateId,
+            voiceId: state.voiceId,
+            voiceSpeed: state.voiceSpeed,
           };
 
       const res = await fetch(apiUrl, {
@@ -305,6 +330,10 @@ export function useWorkflow() {
 
     // Markdown 模式
     generateFromMarkdown,
+
+    // 配音设置
+    setVoiceId,
+    setVoiceSpeed,
 
     // 阶段 3
     confirmAndGenerate,

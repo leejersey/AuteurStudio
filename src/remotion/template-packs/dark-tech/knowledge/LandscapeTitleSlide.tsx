@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { COLORS, FONTS } from "../../../styles/theme";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 
 interface Props {
   heading: string;
@@ -14,6 +14,7 @@ export const LandscapeTitleSlide: React.FC<Props> = ({
   tags,
 }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
   const titleOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: "clamp" });
   const titleY = interpolate(frame, [0, 20], [40, 0], { extrapolateRight: "clamp" });
   const subtitleOpacity = interpolate(frame, [10, 30], [0, 1], { extrapolateRight: "clamp" });
@@ -23,9 +24,10 @@ export const LandscapeTitleSlide: React.FC<Props> = ({
   return (
     <AbsoluteFill
       style={{
-        background: `radial-gradient(ellipse at 30% 40%, ${COLORS.primary}12 0%, transparent 60%),
-                     radial-gradient(ellipse at 70% 60%, ${COLORS.tertiary}08 0%, transparent 50%),
-                     linear-gradient(180deg, ${COLORS.background} 0%, #060810 100%)`,
+        background: `radial-gradient(ellipse at 30% 40%, ${theme.colors.primary}25 0%, transparent 60%),
+                     radial-gradient(ellipse at 70% 60%, ${theme.colors.tertiary}18 0%, transparent 50%),
+                     radial-gradient(circle at 50% 80%, ${theme.colors.secondary}10 0%, transparent 40%),
+                     linear-gradient(180deg, ${theme.colors.background} 0%, #060810 100%)`,
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-start",
@@ -41,7 +43,7 @@ export const LandscapeTitleSlide: React.FC<Props> = ({
           left: "50%",
           width: 600,
           height: 1,
-          background: `linear-gradient(90deg, transparent, ${COLORS.primary}40, transparent)`,
+          background: `linear-gradient(90deg, transparent, ${theme.colors.primary}40, transparent)`,
           transform: `translate(-50%, -80px) scaleX(${lineScale})`,
         }}
       />
@@ -51,8 +53,8 @@ export const LandscapeTitleSlide: React.FC<Props> = ({
         style={{
           fontSize: 72,
           fontWeight: 800,
-          fontFamily: FONTS.headline,
-          color: COLORS.onSurface,
+          fontFamily: theme.typography.headingFont,
+          color: theme.colors.text,
           textAlign: "center",
           lineHeight: 1.3,
           opacity: titleOpacity,
@@ -69,8 +71,8 @@ export const LandscapeTitleSlide: React.FC<Props> = ({
         style={{
           fontSize: 32,
           fontWeight: 400,
-          fontFamily: FONTS.body,
-          color: `${COLORS.onSurfaceVariant}`,
+          fontFamily: theme.typography.bodyFont,
+          color: `${theme.colors.textMuted}`,
           textAlign: "center",
           opacity: subtitleOpacity,
           marginTop: 24,
@@ -95,12 +97,12 @@ export const LandscapeTitleSlide: React.FC<Props> = ({
               key={i}
               style={{
                 padding: "6px 18px",
-                background: `${COLORS.primary}18`,
-                border: `1px solid ${COLORS.primary}35`,
+                background: `${theme.colors.primary}18`,
+                border: `1px solid ${theme.colors.primary}35`,
                 borderRadius: 20,
                 fontSize: 18,
                 fontWeight: 600,
-                color: COLORS.primary,
+                color: theme.colors.primary,
                 letterSpacing: 1,
               }}
             >

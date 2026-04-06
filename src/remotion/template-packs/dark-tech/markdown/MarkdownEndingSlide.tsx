@@ -1,7 +1,7 @@
 // Markdown 结尾页 Slide
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { COLORS, FONTS } from "../../../styles/theme";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 
 interface Props {
   heading: string;
@@ -11,6 +11,7 @@ interface Props {
 
 export const MarkdownEndingSlide: React.FC<Props> = ({ heading, summary, callToAction }) => {
   const frame = useCurrentFrame();
+  const theme = useTemplateTheme();
 
   const opacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: "clamp" });
   const scale = interpolate(frame, [0, 20], [0.9, 1], { extrapolateRight: "clamp" });
@@ -19,12 +20,12 @@ export const MarkdownEndingSlide: React.FC<Props> = ({ heading, summary, callToA
   return (
     <AbsoluteFill
       style={{
-        background: `radial-gradient(circle at 50% 50%, ${COLORS.surfaceHigh}, ${COLORS.background})`,
+        background: `radial-gradient(circle at 50% 50%, ${theme.colors.surfaceHigh}, ${theme.colors.background})`,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        fontFamily: FONTS.body,
+        fontFamily: theme.typography.bodyFont,
         padding: 100,
         opacity,
         transform: `scale(${scale})`,
@@ -36,7 +37,7 @@ export const MarkdownEndingSlide: React.FC<Props> = ({ heading, summary, callToA
           width: 80,
           height: 80,
           borderRadius: "50%",
-          background: `linear-gradient(135deg, ${COLORS.primary}30, ${COLORS.secondary}30)`,
+          background: `linear-gradient(135deg, ${theme.colors.primary}30, ${theme.colors.secondary}30)`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -51,8 +52,8 @@ export const MarkdownEndingSlide: React.FC<Props> = ({ heading, summary, callToA
         style={{
           fontSize: 56,
           fontWeight: 800,
-          fontFamily: FONTS.headline,
-          color: COLORS.onSurface,
+          fontFamily: theme.typography.headingFont,
+          color: theme.colors.text,
           textAlign: "center",
           marginBottom: 20,
         }}
@@ -64,7 +65,7 @@ export const MarkdownEndingSlide: React.FC<Props> = ({ heading, summary, callToA
         <p
           style={{
             fontSize: 24,
-            color: COLORS.onSurfaceVariant,
+            color: theme.colors.textMuted,
             textAlign: "center",
             maxWidth: 800,
             lineHeight: 1.6,
@@ -80,12 +81,12 @@ export const MarkdownEndingSlide: React.FC<Props> = ({ heading, summary, callToA
           style={{
             opacity: ctaOpacity,
             padding: "16px 40px",
-            background: `linear-gradient(135deg, ${COLORS.primary}20, ${COLORS.secondary}20)`,
-            border: `1px solid ${COLORS.primary}40`,
+            background: `linear-gradient(135deg, ${theme.colors.primary}20, ${theme.colors.secondary}20)`,
+            border: `1px solid ${theme.colors.primary}40`,
             borderRadius: 30,
             fontSize: 22,
             fontWeight: 700,
-            color: COLORS.primary,
+            color: theme.colors.primary,
           }}
         >
           {callToAction}

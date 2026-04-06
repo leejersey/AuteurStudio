@@ -1,6 +1,7 @@
 // template-packs/minimal-white/index.ts — 极简白色模板注册入口
 import { registerTemplate } from "../../template-registry";
 import type { VideoTemplate } from "../../template-registry";
+import { MINIMAL_WHITE_THEME } from "../../default-themes";
 
 // ─── Card Slides (9:16) ───
 import { TitleSlideComp } from "./card/TitleSlide";
@@ -36,6 +37,7 @@ const minimalWhiteTemplate: VideoTemplate = {
       "linear-gradient(135deg, #fafafa 0%, #f0f0f0 50%, #3b82f615 100%)",
     videoTypes: ["card", "algo", "knowledge", "markdown"],
   },
+  theme: MINIMAL_WHITE_THEME,
   card: {
     TitleSlide: TitleSlideComp,
     NumberedListSlide: NumberedListSlideComp,

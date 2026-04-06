@@ -25,7 +25,7 @@ export const EndingSlideComp: React.FC<Props> = ({
 
   return (
     <AbsoluteFill>
-      <Background style={style} />
+      <Background />
       <div
         style={{
           display: "flex",

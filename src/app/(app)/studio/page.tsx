@@ -1,14 +1,19 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useCallback } from "react";
 import TopNavBar from "@/components/layout/TopNavBar";
 import ChatPanel from "@/components/ChatPanel";
 import VideoPreview from "@/components/VideoPreview";
 import ControlPanel from "@/components/ControlPanel";
+import TemplateConfigPanel from "@/components/TemplateConfigPanel";
+import VoiceConfigPanel from "@/components/VoiceConfigPanel";
+import SlideEditor from "@/components/SlideEditor";
 import { useWorkflow } from "@/hooks/useWorkflow";
 import { useVideoData } from "@/hooks/useVideoData";
 import { useRenderTask } from "@/hooks/useRenderTask";
+import { useTemplateConfig } from "@/hooks/useTemplateConfig";
+import { useSlideEditor } from "@/hooks/useSlideEditor";
 
 function StudioContent() {
   const searchParams = useSearchParams();
@@ -19,6 +24,43 @@ function StudioContent() {
   const { startRender } = useRenderTask();
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [isLoadingProject, setIsLoadingProject] = useState(false);
+
+  // 迭代二：模板配置面板状态
+  const templateConfig = useTemplateConfig(workflow.state.templateId || "dark-tech");
+  const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false);
+
+  const toggleConfigPanel = useCallback(() => {
+    setIsConfigPanelOpen((prev) => !prev);
+  }, []);
+
+  const closeConfigPanel = useCallback(() => {
+    setIsConfigPanelOpen(false);
+  }, []);
+
+  // 配音设置面板状态
+  const [isVoicePanelOpen, setIsVoicePanelOpen] = useState(false);
+
+  const toggleVoicePanel = useCallback(() => {
+    setIsVoicePanelOpen((prev) => !prev);
+  }, []);
+
+  const closeVoicePanel = useCallback(() => {
+    setIsVoicePanelOpen(false);
+  }, []);
+
+  // 迭代三：Slide 编排
+  const handleSlideDataChange = useCallback(
+    (newData: unknown) => {
+      updateVideoData(newData, videoType);
+    },
+    [updateVideoData, videoType]
+  );
+
+  const slideEditor = useSlideEditor(
+    videoData as Parameters<typeof useSlideEditor>[0],
+    videoType,
+    handleSlideDataChange
+  );
 
   // 从 URL 加载已有项目
   useEffect(() => {
@@ -65,6 +107,7 @@ function StudioContent() {
   const displayTitle =
     workflow.state.editedScript?.title ||
     workflow.state.script?.title ||
+    workflow.state.selectedTopic?.title ||
     (videoData && typeof videoData === "object" && videoData !== null && "meta" in videoData
       ? ((videoData as unknown as { meta: { title: string } }).meta.title)
       : "未命名视频");
@@ -94,23 +137,55 @@ function StudioContent() {
           onTemplateChange={workflow.setTemplateId}
         />
         <section className="flex-1 flex bg-background relative">
-          {isLoadingProject ? (
-            <div className="flex-1 flex items-center justify-center">
-              <span className="material-symbols-outlined text-primary text-3xl animate-spin">
-                sync
-              </span>
-              <span className="ml-3 text-on-surface-variant">
-                加载项目中...
-              </span>
-            </div>
-          ) : (
-            <VideoPreview
-              videoData={videoData}
-              videoType={videoType}
-              totalFrames={totalFrames}
-            />
-          )}
-          <ControlPanel onExport={handleExport} hasVideoData={!!videoData} />
+          {/* 预览 + Slide 编排（上下结构） */}
+          <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+            {isLoadingProject ? (
+              <div className="flex-1 flex items-center justify-center">
+                <span className="material-symbols-outlined text-primary text-3xl animate-spin">
+                  sync
+                </span>
+                <span className="ml-3 text-on-surface-variant">
+                  加载项目中...
+                </span>
+              </div>
+            ) : (
+              <VideoPreview
+                videoData={videoData}
+                videoType={videoType}
+                totalFrames={totalFrames}
+                themeOverrides={templateConfig.hasOverrides ? templateConfig.overrides : undefined}
+              />
+            )}
+
+            {/* 迭代三：Slide 编排条 */}
+            <SlideEditor editor={slideEditor} />
+          </div>
+
+          <ControlPanel
+            onExport={handleExport}
+            hasVideoData={!!videoData}
+            onToggleConfig={toggleConfigPanel}
+            isConfigOpen={isConfigPanelOpen}
+            onToggleVoice={toggleVoicePanel}
+            isVoiceOpen={isVoicePanelOpen}
+          />
+
+          {/* 迭代二：模板配置面板 */}
+          <TemplateConfigPanel
+            config={templateConfig}
+            isOpen={isConfigPanelOpen}
+            onClose={closeConfigPanel}
+          />
+
+          {/* 配音设置面板 */}
+          <VoiceConfigPanel
+            isOpen={isVoicePanelOpen}
+            onClose={closeVoicePanel}
+            voiceId={workflow.state.voiceId}
+            voiceSpeed={workflow.state.voiceSpeed}
+            onVoiceChange={workflow.setVoiceId}
+            onSpeedChange={workflow.setVoiceSpeed}
+          />
         </section>
       </main>
 
@@ -139,3 +214,4 @@ export default function Home() {
     </Suspense>
   );
 }
+

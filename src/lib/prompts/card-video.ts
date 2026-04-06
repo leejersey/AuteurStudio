@@ -8,6 +8,7 @@ const titleSlideSchema = z.object({
   heading: z.string(),
   subtitle: z.string(),
   highlightWords: z.array(z.string()).optional(),
+  imageKeyword: z.string().describe("2-4 English keywords for Unsplash image search"),
 });
 
 const numberedListSlideSchema = z.object({
@@ -20,6 +21,7 @@ const numberedListSlideSchema = z.object({
     })
   ),
   tags: z.array(z.string()).optional(),
+  imageKeyword: z.string().describe("2-4 English keywords for Unsplash image search"),
 });
 
 const comparisonSlideSchema = z.object({
@@ -39,6 +41,7 @@ const comparisonSlideSchema = z.object({
       z.object({ text: z.string(), positive: z.boolean().optional() })
     ),
   }),
+  imageKeyword: z.string().describe("2-4 English keywords for Unsplash image search"),
 });
 
 const stepsSlideSchema = z.object({
@@ -57,6 +60,7 @@ const stepsSlideSchema = z.object({
       url: z.string(),
     })
     .optional(),
+  imageKeyword: z.string().describe("2-4 English keywords for Unsplash image search"),
 });
 
 const quoteSlideSchema = z.object({
@@ -66,6 +70,7 @@ const quoteSlideSchema = z.object({
   source: z.string().optional(),
   summary: z.string().optional(),
   discussionPrompts: z.array(z.string()).optional(),
+  imageKeyword: z.string().describe("2-4 English keywords for Unsplash image search"),
 });
 
 const endingSlideSchema = z.object({
@@ -74,6 +79,7 @@ const endingSlideSchema = z.object({
   authorAvatar: z.string().optional(),
   callToAction: z.string(),
   tags: z.array(z.string()).optional(),
+  imageKeyword: z.string().optional(),
 });
 
 const slideSchema = z.discriminatedUnion("type", [
@@ -115,14 +121,16 @@ const schemaDescription = `{
       "category": "分类标签",
       "heading": "主标题，要有冲击力",
       "subtitle": "副标题",
-      "highlightWords": ["要渐变高亮的关键词"]
+      "highlightWords": ["要渐变高亮的关键词"],
+      "imageKeyword": "technology abstract futuristic"
     },
     // 中间页面根据内容自动选择类型
     {
       "type": "numbered_list",
       "heading": "小标题",
       "items": [{"text": "要点", "detail": "补充说明"}],
-      "tags": ["标签1"]
+      "tags": ["标签1"],
+      "imageKeyword": "data analysis chart"
     },
     {
       "type": "comparison",
@@ -180,4 +188,7 @@ ${schemaDescription}
 ## 重要
 - 只输出 JSON，不要输出其他任何文字
 - 确保 JSON 格式正确，可以被 JSON.parse() 解析
-- authorName 默认使用 "创作者"`;
+- authorName 默认使用 "创作者"
+- 每个 slide 必须包含 imageKeyword 字段，值为 2-4 个英文关键词（用空格分隔），描述该页内容对应的视觉画面
+- imageKeyword 不要用中文，必须是英文
+- imageKeyword 要具体、有画面感，如 "neural network data flow" 而不是 "AI"`;

@@ -1,11 +1,20 @@
-// src/lib/types/card-video.ts — 图文卡片视频完整类型定义
+// ─── 图片布局类型 ───
+export type SlideImagePosition = "background" | "side" | "top" | "overlay";
+
+// ─── 通用图片字段 ───
+export interface SlideImageFields {
+  imageUrl?: string;              // Unsplash 图片 URL
+  imageKeyword?: string;          // 图片搜索关键词（AI 生成，英文）
+  imagePosition?: SlideImagePosition;
+  imageCredit?: string;           // 图片来源归属
+}
 
 export interface CardVideoData {
   meta: {
     title: string;
-    category: string; // "AI资讯" | "技术解读" | ...
+    category: string;
     style: "dark-tech" | "minimal-light" | "gradient-purple";
-    templateId?: string; // 模板 ID，默认 "dark-tech"
+    templateId?: string;
     aspectRatio: "9:16";
     bgmTrack?: string;
   };
@@ -20,7 +29,7 @@ export type Slide =
   | QuoteSlide
   | EndingSlide;
 
-export interface TitleSlide {
+export interface TitleSlide extends SlideImageFields {
   type: "title";
   category: string;
   heading: string;
@@ -28,7 +37,7 @@ export interface TitleSlide {
   highlightWords?: string[];
 }
 
-export interface NumberedListSlide {
+export interface NumberedListSlide extends SlideImageFields {
   type: "numbered_list";
   heading?: string;
   items: {
@@ -38,7 +47,7 @@ export interface NumberedListSlide {
   tags?: string[];
 }
 
-export interface ComparisonSlide {
+export interface ComparisonSlide extends SlideImageFields {
   type: "comparison";
   heading: string;
   left: {
@@ -53,7 +62,7 @@ export interface ComparisonSlide {
   };
 }
 
-export interface StepsSlide {
+export interface StepsSlide extends SlideImageFields {
   type: "steps";
   heading: string;
   subheading?: string;
@@ -67,7 +76,7 @@ export interface StepsSlide {
   };
 }
 
-export interface QuoteSlide {
+export interface QuoteSlide extends SlideImageFields {
   type: "quote";
   heading?: string;
   quote: string;
@@ -76,7 +85,7 @@ export interface QuoteSlide {
   discussionPrompts?: string[];
 }
 
-export interface EndingSlide {
+export interface EndingSlide extends SlideImageFields {
   type: "ending";
   authorName: string;
   authorAvatar?: string;

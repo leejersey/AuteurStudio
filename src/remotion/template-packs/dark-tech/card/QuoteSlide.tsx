@@ -2,28 +2,26 @@ import React from "react";
 import { AbsoluteFill } from "remotion";
 import { Background } from "../../../shared/Background";
 import { AnimatedText } from "../../../shared/AnimatedText";
-import { COLORS, FONTS } from "../../../styles/theme";
+import { useTemplateTheme } from "../../../TemplateThemeContext";
 import type { QuoteSlide as QuoteSlideData } from "@/lib/types/card-video";
 
 interface Props {
   data: QuoteSlideData;
-  style?: "dark-tech" | "minimal-light" | "gradient-purple";
 }
 
-export const QuoteSlideComp: React.FC<Props> = ({
-  data,
-  style = "dark-tech",
-}) => {
+export const QuoteSlideComp: React.FC<Props> = ({ data }) => {
+  const theme = useTemplateTheme();
+
   return (
     <AbsoluteFill>
-      <Background style={style} />
+      <Background imageUrl={data.imageUrl} imageCredit={data.imageCredit} />
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
           height: "100%",
-          padding: "80px 60px",
+          padding: `${theme.spacing.pagePaddingY}px ${theme.spacing.pagePaddingX}px`,
         }}
       >
         {data.heading && (
@@ -31,70 +29,90 @@ export const QuoteSlideComp: React.FC<Props> = ({
             text={data.heading}
             mode="slideUp"
             fontSize={36}
-            fontFamily={FONTS.headline}
+            fontFamily={theme.typography.headingFont}
             fontWeight={700}
-            color={COLORS.onSurface}
+            color={theme.colors.text}
             style={{ marginBottom: 40 }}
           />
         )}
 
+        {/* 巨型背景引号 */}
+        <div
+          style={{
+            position: "absolute",
+            top: "-10%",
+            left: "5%",
+            fontSize: 800,
+            color: theme.colors.secondary,
+            opacity: 0.04,
+            fontFamily: "Georgia, serif",
+            lineHeight: 1,
+            zIndex: 0,
+            textShadow: `0 0 100px ${theme.colors.secondary}`,
+            pointerEvents: "none",
+          }}
+        >
+          “
+        </div>
+
         {/* 引用框 */}
         <div
           style={{
-            borderLeft: `4px solid ${COLORS.secondary}`,
-            paddingLeft: 30,
-            marginBottom: 30,
+            position: "relative",
+            zIndex: 1,
+            paddingLeft: 40,
+            borderLeft: `4px solid ${theme.colors.secondary}`,
+            boxShadow: `-10px 0 20px -10px ${theme.colors.secondary}60`, // 左侧发光
+            marginBottom: 40,
           }}
         >
-          <span
-            style={{
-              fontSize: 60,
-              color: COLORS.secondary,
-              opacity: 0.3,
-              lineHeight: 0.5,
-              fontFamily: "serif",
-            }}
-          >
-            "
-          </span>
           <AnimatedText
             text={data.quote}
             mode="typewriter"
             delay={10}
-            fontSize={30}
-            color={COLORS.onSurface}
-            fontWeight={500}
-            style={{ lineHeight: 1.6, fontStyle: "italic" }}
+            fontSize={42}
+            color={theme.colors.text}
+            fontWeight={600}
+            style={{ lineHeight: 1.6, fontStyle: "italic", letterSpacing: 1 }}
           />
         </div>
 
         {data.source && (
-          <AnimatedText
-            text={`— ${data.source}`}
-            mode="fadeIn"
-            delay={40}
-            fontSize={20}
-            color={COLORS.onSurfaceVariant}
-            style={{ marginBottom: 30, textAlign: "right" }}
-          />
+          <div style={{ position: "relative", zIndex: 1, textAlign: "right", paddingRight: 40, marginBottom: 50 }}>
+            <div style={{ display: "inline-block", width: 60, height: 2, background: theme.colors.secondary, marginRight: 16, verticalAlign: "middle" }} />
+            <AnimatedText
+              text={data.source}
+              mode="fadeIn"
+              delay={40}
+              fontSize={24}
+              color={theme.colors.textMuted}
+              fontWeight={700}
+              style={{ display: "inline-block", letterSpacing: 2 }}
+            />
+          </div>
         )}
 
         {data.summary && (
           <div
             style={{
-              background: `${COLORS.primary}10`,
-              borderRadius: 12,
-              padding: "20px 24px",
-              border: `1px solid ${COLORS.primary}20`,
-              marginBottom: 24,
+              position: "relative",
+              zIndex: 1,
+              background: "rgba(255, 255, 255, 0.04)",
+              backdropFilter: "blur(20px)",
+              borderRadius: 16,
+              padding: "24px 32px",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              borderTop: `2px solid ${theme.colors.primary}`,
+              boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
+              marginBottom: 32,
             }}
           >
             <AnimatedText
               text={`💡 ${data.summary}`}
               mode="slideUp"
               delay={45}
-              fontSize={24}
-              color={COLORS.primary}
+              fontSize={26}
+              color={theme.colors.text}
               fontWeight={600}
             />
           </div>
@@ -114,9 +132,9 @@ export const QuoteSlideComp: React.FC<Props> = ({
                 key={i}
                 text={`💬 ${prompt}`}
                 mode="fadeIn"
-                delay={55 + i * 8}
-                fontSize={22}
-                color={COLORS.onSurfaceVariant}
+                delay={55 + i * theme.animation.staggerDelay}
+                fontSize={theme.typography.detailSize}
+                color={theme.colors.textMuted}
               />
             ))}
           </div>
