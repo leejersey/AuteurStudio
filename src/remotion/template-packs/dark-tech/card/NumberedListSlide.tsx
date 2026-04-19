@@ -4,6 +4,9 @@ import { Background } from "../../../shared/Background";
 import { AnimatedText } from "../../../shared/AnimatedText";
 import { NumberBadge } from "../../../shared/NumberBadge";
 import { useTemplateTheme } from "../../../TemplateThemeContext";
+import { DecorativePattern } from "../../../shared/DecorativePattern";
+import { WaveBackground } from "../../../shared/WaveBackground";
+import { Divider } from "../../../shared/Divider";
 import type { NumberedListSlide as NumberedListSlideData } from "@/lib/types/card-video";
 
 interface Props {
@@ -15,9 +18,42 @@ export const NumberedListSlideComp: React.FC<Props> = ({ data }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
+  const accentColor = data.colorAccent || theme.colors.primary;
+
   return (
     <AbsoluteFill>
       <Background imageUrl={data.imageUrl} imageCredit={data.imageCredit} />
+
+      {/* 装饰层 — 可见度大幅提升 */}
+      <DecorativePattern
+        pattern={(data.decorations?.find(d => ["circuit", "hexagon", "wave", "dots-grid", "diagonal-lines"].includes(d)) as "circuit" | "hexagon" | "wave" | "dots-grid" | "diagonal-lines") || "dots-grid"}
+        opacity={0.12}
+        color={accentColor}
+      />
+
+      {/* 底部波浪装饰 */}
+      <WaveBackground
+        layers={3}
+        opacity={0.15}
+        amplitude={20}
+        speed={0.5}
+        position="bottom"
+        colors={[accentColor, theme.colors.secondary, theme.colors.tertiary]}
+      />
+
+      {/* 顶部渐变光晕 */}
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: "30%",
+          background: `radial-gradient(ellipse 80% 60% at 50% 0%, ${accentColor}18, transparent)`,
+          pointerEvents: "none",
+        }}
+      />
+
       <div
         style={{
           display: "flex",
@@ -25,16 +61,12 @@ export const NumberedListSlideComp: React.FC<Props> = ({ data }) => {
           justifyContent: "center",
           height: "100%",
           padding: `${theme.spacing.pagePaddingY}px ${theme.spacing.pagePaddingX}px`,
+          position: "relative",
+          zIndex: 1,
         }}
       >
         {data.heading && (
-          <div
-            style={{
-              marginBottom: 40,
-              paddingBottom: 20,
-              borderBottom: `2px solid ${theme.colors.borderSubtle}40`,
-            }}
-          >
+          <div style={{ marginBottom: 36 }}>
             <AnimatedText
               text={data.heading}
               mode="slideUp"
@@ -44,6 +76,17 @@ export const NumberedListSlideComp: React.FC<Props> = ({ data }) => {
               color={theme.colors.text}
               style={{ letterSpacing: 1.5 }}
             />
+            {/* 标题下方渐变强调线 */}
+            <div style={{ marginTop: 16 }}>
+              <Divider
+                variant="gradient"
+                color={accentColor}
+                glow
+                animated
+                thickness={3}
+                length={200}
+              />
+            </div>
           </div>
         )}
 
@@ -56,25 +99,28 @@ export const NumberedListSlideComp: React.FC<Props> = ({ data }) => {
               fps,
               config: { damping: 16, mass: 0.7, stiffness: 120 },
             });
-            // 每个卡片从右侧甩入，速度逐渐递减（瀑布效果）
             const enterX = (1 - slideProgress) * (80 + i * 15);
 
-            // 进度连接线 — 上一个卡片到当前卡片
+            // 进度连接线
             const lineDelay = cardDelay + 5;
             const lineFrame = Math.max(0, frame - lineDelay);
             const lineProgress = interpolate(lineFrame, [0, 12], [0, 1], {
               extrapolateRight: "clamp",
             });
 
+            // 每张卡片交替使用不同的强调色
+            const cardColors = [accentColor, theme.colors.secondary, theme.colors.tertiary, theme.colors.primaryDim];
+            const cardColor = cardColors[i % cardColors.length];
+
             return (
               <React.Fragment key={i}>
-                {/* 进度连接线 (第一个之前不画) */}
+                {/* 进度连接线 */}
                 {i > 0 && (
                   <div
                     style={{
                       display: "flex",
                       justifyContent: "center",
-                      paddingLeft: 55, // 对齐到序号中心
+                      paddingLeft: 55,
                       height: 20,
                     }}
                   >
@@ -82,33 +128,33 @@ export const NumberedListSlideComp: React.FC<Props> = ({ data }) => {
                       style={{
                         width: 2,
                         height: `${lineProgress * 100}%`,
-                        background: `linear-gradient(180deg, ${theme.colors.primary}80, ${theme.colors.primary}20)`,
-                        boxShadow: `0 0 8px ${theme.colors.primary}40`,
+                        background: `linear-gradient(180deg, ${cardColor}80, ${cardColor}20)`,
+                        boxShadow: `0 0 12px ${cardColor}60`,
                       }}
                     />
                   </div>
                 )}
 
-                {/* 卡片主体 */}
+                {/* 卡片主体 — 增强渐变边框和发光 */}
                 <div
                   style={{
                     display: "flex",
                     alignItems: "flex-start",
                     gap: 24,
                     padding: "24px 32px",
-                    background: "rgba(255, 255, 255, 0.04)",
-                    backdropFilter: "blur(12px)",
+                    background: `linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))`,
+                    backdropFilter: "blur(16px)",
                     borderRadius: 16,
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
-                    borderLeft: `4px solid ${theme.colors.primary}`,
-                    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
+                    border: `1px solid ${cardColor}30`,
+                    borderLeft: `4px solid ${cardColor}`,
+                    boxShadow: `0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 ${cardColor}15, 0 0 40px ${cardColor}08`,
                     opacity: slideProgress,
                     transform: `translateX(${enterX}px)`,
                   }}
                 >
                   <div
                     style={{
-                      boxShadow: `0 0 20px ${theme.colors.primary}60`,
+                      boxShadow: `0 0 25px ${cardColor}60`,
                       borderRadius: "50%",
                       marginTop: 2,
                     }}
@@ -160,14 +206,15 @@ export const NumberedListSlideComp: React.FC<Props> = ({ data }) => {
                 mode="fadeIn"
                 delay={40 + i * 5}
                 fontSize={theme.typography.tagSize}
-                color={theme.colors.primary}
+                color={accentColor}
                 fontWeight={700}
                 style={{
                   padding: "6px 16px",
                   borderRadius: 20,
-                  border: `1px solid ${theme.colors.primary}40`,
-                  background: `${theme.colors.primary}10`,
+                  border: `1px solid ${accentColor}40`,
+                  background: `${accentColor}15`,
                   letterSpacing: 1,
+                  boxShadow: `0 0 15px ${accentColor}10`,
                 }}
               />
             ))}

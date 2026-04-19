@@ -11,6 +11,11 @@ import { StepsSlideComp } from "./card/StepsSlide";
 import { QuoteSlideComp } from "./card/QuoteSlide";
 import { EndingSlideComp } from "./card/EndingSlide";
 
+// ─── 新 Slide 类型 (Fallback: 从 dark-tech 复用，后续可定制白色版) ───
+import { StatsSlideComp } from "../dark-tech/card/StatsSlide";
+import { TimelineSlideComp } from "../dark-tech/card/TimelineSlide";
+import { HighlightSlideComp } from "../dark-tech/card/HighlightSlide";
+
 // ─── Knowledge Slides (16:9) ───
 import { LandscapeTitleSlide } from "./knowledge/LandscapeTitleSlide";
 import { LandscapeContentSlide } from "./knowledge/LandscapeContentSlide";
@@ -45,6 +50,9 @@ const minimalWhiteTemplate: VideoTemplate = {
     StepsSlide: StepsSlideComp,
     QuoteSlide: QuoteSlideComp,
     EndingSlide: EndingSlideComp,
+    StatsSlide: StatsSlideComp,
+    TimelineSlide: TimelineSlideComp,
+    HighlightSlide: HighlightSlideComp,
   },
   knowledge: {
     LandscapeTitleSlide,

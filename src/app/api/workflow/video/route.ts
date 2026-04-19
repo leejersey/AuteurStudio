@@ -116,44 +116,136 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ─── 脚本 → CardVideoData 格式转换 ───
-
 function convertToCardVideoData(script: VideoScript): Record<string, unknown> {
+  const decorationPool = ["circuit", "hexagon", "dots-grid", "wave", "spotlight"];
+  const accentColor = inferAccentColor(script.title, script.tags);
+
   const slides = script.slides.map((slide, i) => {
-    // 从 heading 提取搜索关键词
     const imageKeyword = extractImageKeyword(slide.heading, slide.bodyText);
+    const decoration = decorationPool[i % decorationPool.length];
+    const decorations = slide.designHints?.decorations || [decoration];
+    const colorAccent = slide.designHints?.colorAccent || accentColor;
 
-    if (i === 0) {
-      return {
-        type: "title" as const,
-        category: script.tags[0] || "资讯",
-        heading: slide.heading,
-        subtitle: slide.bodyText,
-        highlightWords: extractHighlightWords(slide.heading),
-        imageKeyword,
-      };
+    // 优先使用 AI 指定的 slideType，否则按位置推断
+    const slideType = slide.slideType || (i === 0 ? "title" : i === script.slides.length - 1 ? "ending" : "numbered_list");
+
+    switch (slideType) {
+      case "title":
+        return {
+          type: "title" as const,
+          category: script.tags[0] || "资讯",
+          heading: slide.heading,
+          subtitle: slide.bodyText,
+          highlightWords: extractHighlightWords(slide.heading),
+          imageKeyword,
+          decorations,
+          colorAccent,
+        };
+
+      case "ending":
+        return {
+          type: "ending" as const,
+          authorName: "创作者",
+          callToAction: script.endingCTA,
+          tags: script.tags,
+        };
+
+      case "stats":
+        // 使用 AI 提供的结构化 statsData，或从 bodyText 提取
+        const stats = slide.statsData || extractStatsFromText(slide.bodyText);
+        return {
+          type: "stats" as const,
+          heading: slide.heading,
+          stats,
+          imageKeyword,
+          layoutVariant: slide.designHints?.layoutVariant || (stats.length <= 2 ? "row" : "grid"),
+          decorations,
+          colorAccent,
+        };
+
+      case "timeline":
+        // 使用 AI 提供的事件列表，或从 bodyText 提取
+        const events = slide.timelineEvents || extractTimelineFromText(slide.bodyText);
+        return {
+          type: "timeline" as const,
+          heading: slide.heading,
+          events,
+          imageKeyword,
+          decorations,
+          colorAccent,
+        };
+
+      case "highlight":
+        return {
+          type: "highlight" as const,
+          text: slide.bodyText.replace(/[""]/g, "").trim(),
+          subtext: slide.heading,
+          decoration: (["spotlight", "wave", "pattern"] as const)[i % 3],
+          imageKeyword,
+          colorAccent,
+        };
+
+      case "comparison":
+        // 从 bodyText 提取对比内容
+        const parts = slide.bodyText.split(/[vs对比VS]/);
+        return {
+          type: "comparison" as const,
+          heading: slide.heading,
+          left: {
+            title: parts[0]?.trim().slice(0, 10) || "方案A",
+            items: [{ text: parts[0]?.trim() || slide.bodyText, positive: true }],
+          },
+          right: {
+            title: parts[1]?.trim().slice(0, 10) || "方案B",
+            items: [{ text: parts[1]?.trim() || "", positive: false }],
+          },
+          imageKeyword,
+          decorations,
+          colorAccent,
+        };
+
+      case "steps": {
+        const sentences = slide.bodyText.split(/[。！？\n]/).filter(s => s.trim().length > 3);
+        return {
+          type: "steps" as const,
+          heading: slide.heading,
+          steps: sentences.slice(0, 5).map(s => ({
+            action: s.trim().slice(0, 40),
+          })),
+          imageKeyword,
+          decorations,
+          colorAccent,
+        };
+      }
+
+      case "quote":
+        return {
+          type: "quote" as const,
+          heading: slide.heading,
+          quote: slide.bodyText,
+          summary: slide.heading,
+          imageKeyword,
+          decorations,
+          colorAccent,
+        };
+
+      case "numbered_list":
+      default: {
+        const items = slide.bodyText.split(/[。！？\n]/).filter(s => s.trim().length > 3);
+        return {
+          type: "numbered_list" as const,
+          heading: slide.heading,
+          items: items.slice(0, 5).map(text => ({
+            text: text.trim().slice(0, 50),
+            detail: undefined,
+          })),
+          tags: script.tags.slice(0, 2),
+          imageKeyword,
+          decorations,
+          colorAccent,
+        };
+      }
     }
-
-    if (i === script.slides.length - 1) {
-      return {
-        type: "ending" as const,
-        authorName: "创作者",
-        callToAction: script.endingCTA,
-        tags: script.tags,
-      };
-    }
-
-    // 中间页 → numbered_list 类型
-    return {
-      type: "numbered_list" as const,
-      heading: slide.heading,
-      items: slide.bodyText.split(/[。！？\n]/).filter(Boolean).map((text) => ({
-        text: text.trim(),
-        detail: undefined,
-      })),
-      tags: script.tags.slice(0, 2),
-      imageKeyword,
-    };
   });
 
   return {
@@ -162,9 +254,69 @@ function convertToCardVideoData(script: VideoScript): Record<string, unknown> {
       category: script.tags[0] || "资讯",
       style: (script.style || "dark-tech") as "dark-tech",
       aspectRatio: "9:16" as const,
+      designDirectives: {
+        colorPalette: { accent: accentColor },
+        mood: "energetic" as const,
+        decorationDensity: "rich" as const,
+        backgroundPattern: "circuit" as const,
+      },
     },
     slides,
   };
+}
+
+// ─── 辅助：从文本提取统计数据 ───
+
+function extractStatsFromText(text: string): Array<{ value: number; suffix: string; label: string; showProgress: boolean }> {
+  const statMatches = text.match(/(\d+[%％万亿kKmM+]*)\s*[的]?\s*([^\d,，。！？\n]{2,10})/g);
+  if (statMatches && statMatches.length >= 2) {
+    return statMatches.slice(0, 4).map((match) => {
+      const numMatch = match.match(/(\d+)([%％万亿kKmM+]*)/);
+      const labelMatch = match.match(/[%％万亿kKmM+]*\s*[的]?\s*(.{2,10})$/);
+      return {
+        value: numMatch ? parseInt(numMatch[1]) : 0,
+        suffix: numMatch?.[2] || "",
+        label: labelMatch?.[1]?.trim() || match.trim(),
+        showProgress: (numMatch?.[2] || "").includes("%") || (numMatch?.[2] || "").includes("％"),
+      };
+    });
+  }
+  return [
+    { value: 0, suffix: "", label: "数据", showProgress: false },
+    { value: 0, suffix: "", label: "数据", showProgress: false },
+  ];
+}
+
+// ─── 辅助：从文本提取时间线 ───
+
+function extractTimelineFromText(text: string): Array<{ time: string; title: string; icon: string }> {
+  const sentences = text.split(/[。！？\n]/).filter(s => s.trim().length > 3);
+  return sentences.slice(0, 4).map((s, j) => {
+    const timeMatch = s.match(/(\d{4}年?|Q[1-4]|第[一二三四五六七八九十][步阶段]?)/);
+    return {
+      time: timeMatch ? timeMatch[1] : `0${j + 1}`,
+      title: s.replace(/(\d{4}年?|Q[1-4]|第[一二三四五六七八九十][步阶段]?)[：:，,]?\s*/, "").trim().slice(0, 30),
+      icon: ["🚀", "📈", "⚡", "🎯", "✨"][j % 5],
+    };
+  });
+}
+
+// ─── 辅助：根据主题推断强调色 ───
+
+function inferAccentColor(title: string, tags: string[]): string {
+  const text = `${title} ${tags.join(" ")}`;
+  const colorMap: [RegExp, string][] = [
+    [/AI|人工智能|大模型|GPT|机器|深度学习/, "#00e2ee"],
+    [/商业|财经|金融|投资|定价|市场/, "#f59e0b"],
+    [/健康|医疗|生活|运动/, "#10b981"],
+    [/创意|设计|艺术|品牌/, "#8b5cf6"],
+    [/教育|学习|课程|知识/, "#3b82f6"],
+    [/热点|突发|新闻|爆/, "#ef4444"],
+  ];
+  for (const [pattern, color] of colorMap) {
+    if (pattern.test(text)) return color;
+  }
+  return "#00e2ee";
 }
 
 // ─── 脚本 → KnowledgeVideoData 格式转换 ───

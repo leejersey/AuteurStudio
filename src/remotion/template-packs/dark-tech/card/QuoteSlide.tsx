@@ -2,6 +2,8 @@ import React from "react";
 import { AbsoluteFill } from "remotion";
 import { Background } from "../../../shared/Background";
 import { AnimatedText } from "../../../shared/AnimatedText";
+import { DecorativePattern } from "../../../shared/DecorativePattern";
+import { Spotlight } from "../../../shared/Spotlight";
 import { useTemplateTheme } from "../../../TemplateThemeContext";
 import type { QuoteSlide as QuoteSlideData } from "@/lib/types/card-video";
 
@@ -15,6 +17,16 @@ export const QuoteSlideComp: React.FC<Props> = ({ data }) => {
   return (
     <AbsoluteFill>
       <Background imageUrl={data.imageUrl} imageCredit={data.imageCredit} />
+
+      {/* 装饰层 — 高可见度 */}
+      <DecorativePattern pattern="wave" opacity={0.12} color={theme.colors.secondary} />
+      <Spotlight position="top-right" color={theme.colors.secondary} opacity={0.08} animated rotateSpeed={-0.1} width={40} />
+      {/* 左侧渐变光晕 */}
+      <div style={{
+        position: "absolute", top: 0, left: 0, width: "40%", height: "100%",
+        background: `radial-gradient(ellipse 80% 60% at 0% 50%, ${theme.colors.secondary}15, transparent)`,
+        pointerEvents: "none",
+      }} />
       <div
         style={{
           display: "flex",

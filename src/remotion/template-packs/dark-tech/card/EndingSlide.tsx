@@ -5,6 +5,8 @@ import { AnimatedText } from "../../../shared/AnimatedText";
 import { AnimatedLine } from "../../../shared/AnimatedLine";
 import { ParticleField } from "../../../shared/ParticleField";
 import { GlowOrb } from "../../../shared/GlowOrb";
+import { WaveBackground } from "../../../shared/WaveBackground";
+import { DecorativePattern } from "../../../shared/DecorativePattern";
 import { useTemplateTheme } from "../../../TemplateThemeContext";
 import type { EndingSlide as EndingSlideData } from "@/lib/types/card-video";
 
@@ -38,10 +40,20 @@ export const EndingSlideComp: React.FC<Props> = ({ data }) => {
     <AbsoluteFill>
       <Background imageUrl={data.imageUrl} imageCredit={data.imageCredit} />
 
-      {/* 深空粒子场 */}
-      <ParticleField count={18} opacity={0.4} color={theme.colors.secondary} />
+      {/* 装饰层 — 高可见度 */}
+      <WaveBackground layers={3} opacity={0.18} position="bottom" speed={0.6} amplitude={25} />
+      <DecorativePattern pattern="circuit" opacity={0.12} animated color={theme.colors.primary} />
+      {/* 中央大面积渐变 */}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: `radial-gradient(ellipse 80% 60% at 50% 40%, ${theme.colors.primary}18, transparent)`,
+        pointerEvents: "none",
+      }} />
 
-      {/* 焦点光球 */}
+      {/* 深空粒子场 */}
+      <ParticleField count={25} opacity={0.6} color={theme.colors.secondary} />
+
+      {/* 焦点光球 — 更亮 */}
       <GlowOrb x="50%" y="40%" size={600} pulseSpeed={100} color={theme.colors.primary} />
 
       <div

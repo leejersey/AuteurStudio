@@ -12,6 +12,9 @@ import { ComparisonSlideComp } from "./card/ComparisonSlide";
 import { StepsSlideComp } from "./card/StepsSlide";
 import { QuoteSlideComp } from "./card/QuoteSlide";
 import { EndingSlideComp } from "./card/EndingSlide";
+import { StatsSlideComp } from "./card/StatsSlide";
+import { TimelineSlideComp } from "./card/TimelineSlide";
+import { HighlightSlideComp } from "./card/HighlightSlide";
 
 // ─── Knowledge Slides (16:9) ───
 import { LandscapeTitleSlide } from "./knowledge/LandscapeTitleSlide";
@@ -47,6 +50,9 @@ const darkTechTemplate: VideoTemplate = {
     StepsSlide: StepsSlideComp,
     QuoteSlide: QuoteSlideComp,
     EndingSlide: EndingSlideComp,
+    StatsSlide: StatsSlideComp,
+    TimelineSlide: TimelineSlideComp,
+    HighlightSlide: HighlightSlideComp,
   },
   knowledge: {
     LandscapeTitleSlide,

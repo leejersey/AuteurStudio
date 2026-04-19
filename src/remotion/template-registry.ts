@@ -18,6 +18,9 @@ import type {
   StepsSlide,
   QuoteSlide,
   EndingSlide,
+  StatsSlide,
+  TimelineSlide,
+  HighlightSlide,
 } from "@/lib/types/card-video";
 import type { NarrationSegment, CellState } from "@/lib/types/algo-video";
 import type { CodeTheme } from "@/lib/types/markdown-video";
@@ -44,6 +47,9 @@ export interface CardSlideRenderers {
   StepsSlide: React.FC<{ data: StepsSlide; style?: CardStyle }>;
   QuoteSlide: React.FC<{ data: QuoteSlide; style?: CardStyle }>;
   EndingSlide: React.FC<{ data: EndingSlide; style?: CardStyle }>;
+  StatsSlide: React.FC<{ data: StatsSlide; style?: CardStyle }>;
+  TimelineSlide: React.FC<{ data: TimelineSlide; style?: CardStyle }>;
+  HighlightSlide: React.FC<{ data: HighlightSlide; style?: CardStyle }>;
 }
 
 // ─── Knowledge 视频 Slide 渲染器 (16:9) ───

@@ -25,6 +25,28 @@ export interface ScriptSlide {
   bodyText: string;          // 正文内容
   narration: string;         // 旁白文本
   visualNote?: string;       // 视觉提示（给设计参考的备注）
+  /** AI 推荐的 slide 类型 */
+  slideType?: "title" | "numbered_list" | "comparison" | "steps" | "quote" | "ending" | "stats" | "timeline" | "highlight";
+  /** AI 设计指令 */
+  designHints?: {
+    decorations?: string[];
+    colorAccent?: string;
+    layoutVariant?: string;
+  };
+  /** stats 类型专用：结构化数据 */
+  statsData?: Array<{
+    value: number;
+    suffix?: string;
+    label: string;
+    showProgress?: boolean;
+  }>;
+  /** timeline 类型专用：事件列表 */
+  timelineEvents?: Array<{
+    time: string;
+    title: string;
+    detail?: string;
+    icon?: string;
+  }>;
 }
 
 /** 完整视频脚本 */

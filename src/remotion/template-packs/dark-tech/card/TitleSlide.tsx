@@ -6,6 +6,9 @@ import { AnimatedText } from "../../../shared/AnimatedText";
 import { AnimatedLine } from "../../../shared/AnimatedLine";
 import { ParticleField } from "../../../shared/ParticleField";
 import { GlowOrb } from "../../../shared/GlowOrb";
+import { DecorativePattern } from "../../../shared/DecorativePattern";
+import { Spotlight } from "../../../shared/Spotlight";
+import { WaveBackground } from "../../../shared/WaveBackground";
 import { useTemplateTheme } from "../../../TemplateThemeContext";
 import type { TitleSlide as TitleSlideData } from "@/lib/types/card-video";
 
@@ -17,6 +20,8 @@ export const TitleSlideComp: React.FC<Props> = ({ data }) => {
   const theme = useTemplateTheme();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+
+  const accentColor = data.colorAccent || theme.colors.primary;
 
   // 分类标签从左侧擦入
   const categoryReveal = interpolate(frame, [5, 25], [0, 1], {
@@ -38,12 +43,62 @@ export const TitleSlideComp: React.FC<Props> = ({ data }) => {
     <AbsoluteFill>
       <Background imageUrl={data.imageUrl} imageCredit={data.imageCredit} />
 
-      {/* 深空粒子场 */}
-      <ParticleField count={15} opacity={0.5} />
+      {/* ── 增强装饰层 ── */}
+      {/* 电路纹理 — 高可见度 */}
+      <DecorativePattern
+        pattern={(data.decorations?.find(d => ["circuit", "hexagon", "wave", "dots-grid"].includes(d)) as "circuit" | "hexagon" | "wave" | "dots-grid") || "circuit"}
+        opacity={0.12}
+        color={accentColor}
+      />
 
-      {/* 焦点引导光球 */}
-      <GlowOrb x="75%" y="30%" size={500} pulseSpeed={90} />
-      <GlowOrb x="20%" y="80%" size={350} color={theme.colors.secondary} pulseSpeed={130} blur={80} />
+      {/* 聚光灯 — 鲜明光束 */}
+      <Spotlight
+        position="top-left"
+        color={accentColor}
+        opacity={0.1}
+        animated
+        rotateSpeed={0.15}
+        width={50}
+      />
+      <Spotlight
+        position="top-right"
+        color={theme.colors.secondary}
+        opacity={0.06}
+        animated
+        rotateSpeed={-0.1}
+        width={35}
+      />
+
+      {/* 底部波浪 — 流动感 */}
+      <WaveBackground
+        layers={3}
+        opacity={0.15}
+        amplitude={25}
+        speed={0.6}
+        position="bottom"
+        colors={[accentColor, theme.colors.secondary, theme.colors.tertiary]}
+      />
+
+      {/* 中央大面积渐变光晕 */}
+      <div
+        style={{
+          position: "absolute",
+          top: "20%",
+          left: "50%",
+          width: "120%",
+          height: "60%",
+          transform: "translateX(-50%)",
+          background: `radial-gradient(ellipse 70% 50% at 50% 50%, ${accentColor}15, transparent)`,
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* 深空粒子场 */}
+      <ParticleField count={20} opacity={0.6} />
+
+      {/* 焦点引导光球 — 更亮 */}
+      <GlowOrb x="75%" y="25%" size={600} pulseSpeed={80} color={accentColor} />
+      <GlowOrb x="15%" y="75%" size={400} color={theme.colors.secondary} pulseSpeed={120} blur={80} />
 
       {/* 主内容 — 黄金分割偏左下布局 */}
       <div
@@ -54,6 +109,8 @@ export const TitleSlideComp: React.FC<Props> = ({ data }) => {
           height: "100%",
           padding: `${theme.spacing.pagePaddingY + 20}px ${theme.spacing.pagePaddingX + 20}px`,
           paddingBottom: theme.spacing.pagePaddingY + 80,
+          position: "relative",
+          zIndex: 2,
         }}
       >
         {/* 分类标签 — 极简擦入 */}
@@ -70,15 +127,16 @@ export const TitleSlideComp: React.FC<Props> = ({ data }) => {
           <div
             style={{
               width: 32,
-              height: 2,
-              background: `linear-gradient(90deg, transparent, ${theme.colors.primary})`,
+              height: 3,
+              background: `linear-gradient(90deg, transparent, ${accentColor})`,
+              boxShadow: `0 0 10px ${accentColor}60`,
             }}
           />
           <AnimatedText
             text={data.category}
             mode="fadeIn"
             fontSize={18}
-            color={theme.colors.primary}
+            color={accentColor}
             fontFamily={theme.typography.bodyFont}
             fontWeight={700}
             style={{ letterSpacing: 6, textTransform: "uppercase" }}
@@ -113,9 +171,9 @@ export const TitleSlideComp: React.FC<Props> = ({ data }) => {
           />
         </div>
 
-        {/* 底部装饰线 — 动画生长 */}
+        {/* 底部装饰线 — 动画生长 + 发光 */}
         <div style={{ marginTop: 48 }}>
-          <AnimatedLine length={100} thickness={3} glow delay={40} />
+          <AnimatedLine length={120} thickness={3} glow delay={40} color={accentColor} />
         </div>
       </div>
     </AbsoluteFill>

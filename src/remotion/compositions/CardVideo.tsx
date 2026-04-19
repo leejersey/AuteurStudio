@@ -51,6 +51,12 @@ function renderSlide(
       return <renderers.QuoteSlide data={slide} style={style} />;
     case "ending":
       return <renderers.EndingSlide data={slide} style={style} />;
+    case "stats":
+      return <renderers.StatsSlide data={slide} style={style} />;
+    case "timeline":
+      return <renderers.TimelineSlide data={slide} style={style} />;
+    case "highlight":
+      return <renderers.HighlightSlide data={slide} style={style} />;
     default:
       return null;
   }

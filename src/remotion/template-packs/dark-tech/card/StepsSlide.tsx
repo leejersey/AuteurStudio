@@ -3,20 +3,38 @@ import { AbsoluteFill, spring, useCurrentFrame, useVideoConfig, interpolate } fr
 import { Background } from "../../../shared/Background";
 import { AnimatedText } from "../../../shared/AnimatedText";
 import { useTemplateTheme } from "../../../TemplateThemeContext";
+import { DecorativePattern } from "../../../shared/DecorativePattern";
 import type { StepsSlide as StepsSlideData } from "@/lib/types/card-video";
+
+import { WaveBackground } from "../../../shared/WaveBackground";
 
 interface Props {
   data: StepsSlideData;
 }
 
 export const StepsSlideComp: React.FC<Props> = ({ data }) => {
-  const theme = useTemplateTheme();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const theme = useTemplateTheme();
+  const accentColor = data.colorAccent || theme.colors.primary;
 
   return (
     <AbsoluteFill>
       <Background imageUrl={data.imageUrl} imageCredit={data.imageCredit} />
+
+      {/* 装饰层 — 高可见度 */}
+      <DecorativePattern
+        pattern={(data.decorations?.find(d => ["circuit", "hexagon", "wave", "dots-grid"].includes(d)) as "circuit" | "hexagon" | "wave" | "dots-grid") || "hexagon"}
+        opacity={0.12}
+        color={accentColor}
+      />
+      <WaveBackground layers={2} opacity={0.1} amplitude={15} speed={0.4} position="bottom" colors={[accentColor, theme.colors.secondary]} />
+      {/* 侧面渐变光晕 */}
+      <div style={{
+        position: "absolute", top: 0, right: 0, width: "50%", height: "100%",
+        background: `radial-gradient(ellipse 80% 60% at 100% 30%, ${accentColor}12, transparent)`,
+        pointerEvents: "none",
+      }} />
       <div
         style={{
           display: "flex",
