@@ -143,7 +143,7 @@ npm install
 npm run hf:poc:doctor
 ```
 
-Create `scripts/hyperframes/check-poc-env.ts`. It must assert Node >=22, `ffmpeg`/`ffprobe`, the HyperFrames browser, writable free disk, the alignment engine selected by Task 2 (including model cache or permission for first download), and a running Docker daemon. Parse `hyperframes doctor --json`; do not trust its exit code because it exits zero when `ok` is false. Check required capabilities individually rather than failing on unrelated optional media tools.
+Create `scripts/hyperframes/check-poc-env.ts`. In Task 1 it asserts Node >=22, `ffmpeg`/`ffprobe`, the HyperFrames browser, writable free disk, the initial HyperFrames Whisper `small` candidate (including model cache or permission for first download), and a running Docker daemon. Parse `hyperframes doctor --json`; do not trust its exit code because it exits zero when `ok` is false. Check required capabilities individually rather than failing on unrelated optional media tools.
 
 Expected: install succeeds and the required-capability JSON reports healthy. If it does not, stop before authoring.
 
@@ -202,13 +202,13 @@ Manually label at least 20 character/word boundaries in the spike and apply `ass
 
 - [ ] **Step 4: Stop or lock the alignment path**
 
-If HyperFrames normalization merges Chinese into phrase-sized units or misses the thresholds, stop all later tasks. Replace it with a verified Volcengine timestamp endpoint or CJK-capable forced aligner, update this task with the exact invocation, and rerun. Only after the spike passes may `audio-manifest.ts` define its timed-unit semantics.
+If HyperFrames normalization merges Chinese into phrase-sized units or misses the thresholds, stop all later tasks. Replace it with a verified Volcengine timestamp endpoint or CJK-capable forced aligner and update this task with the exact invocation. After one engine passes, update `check-poc-env.ts` to check that exact engine/cache/network requirement and rerun `npm run hf:poc:doctor` before Task 3. Commit the checker change with Task 2. Only then may `audio-manifest.ts` define its timed-unit semantics.
 
 - [ ] **Step 5: Test and commit**
 
 ```bash
 npm run test:hf-poc
-git add src/hyperframes/poc/timestamp-quality.ts src/hyperframes/poc/timestamp-quality.test.ts scripts/hyperframes/spike-chinese-timestamps.ts
+git add src/hyperframes/poc/timestamp-quality.ts src/hyperframes/poc/timestamp-quality.test.ts scripts/hyperframes/spike-chinese-timestamps.ts scripts/hyperframes/check-poc-env.ts
 git commit -m "test: verify Chinese narration timestamps"
 ```
 
@@ -567,13 +567,17 @@ git commit -m "test: gate HyperFrames sample output"
 
 The fixture attempts to read `parent.document`, cookies, localStorage, navigate the parent, submit a form, open a popup, call a fake authenticated shell endpoint, and fetch an unapproved external host. It reports results only through a nonce-checked `postMessage` payload.
 
-- [ ] **Step 2: Implement the minimal trusted shell**
+- [ ] **Step 2: Implement both origins and enforce policy on the untrusted origin**
 
-Serve the trusted shell on `127.0.0.1:4311`. Serve HyperFrames `play <artifact-digest-dir>` on `127.0.0.1:4312`. The shell embeds the player using `sandbox="allow-scripts"` only—no `allow-same-origin`, top navigation, forms, or popups—and applies a CSP limited to the shell, frame origin, and no arbitrary connect sources. Messages must validate `source`, expected opaque-origin behavior, nonce, and a small schema.
+Serve the trusted shell on `127.0.0.1:4311`. On `127.0.0.1:4312`, `serve-review-shell.ts` serves a tiny preview wrapper, `node_modules/hyperframes/dist/hyperframes-player.global.js`, and the approved artifact under `/composition/`; do not delegate to raw `hyperframes play`.
+
+Every 4312 response sets a restrictive CSP appropriate to its MIME type: `default-src 'self'`; `connect-src 'none'`; no forms, objects, base rewriting, or top navigation; scripts/styles/fonts/media only from the same preview origin; `frame-ancestors http://127.0.0.1:4311`. The wrapper instantiates `<hyperframes-player sandbox-origin src="/composition/index.html">` and contains the only relay. It validates `event.source`, the opaque sandbox origin (`event.origin === "null"` where applicable), a per-session nonce, and an exact schema, then maps only `play`, `pause`, `seek`, and read-only state requests to the player's public methods/properties.
+
+The 4311 shell embeds the 4312 wrapper with `sandbox="allow-scripts"` only—no `allow-same-origin`, navigation, forms, or popups—and has its own restrictive CSP. It applies the same source/origin/nonce/schema checks.
 
 - [ ] **Step 3: Automate the boundary test**
 
-Use direct `puppeteer-core` and the browser path returned by `hyperframes browser path`. Assert every attack fails, the parent URL is unchanged, shell cookies/storage remain unreadable, no popup opens, and request interception observes no unauthorized network request. Also assert normal play/seek messages still work.
+Use direct `puppeteer-core` and the browser path returned by `hyperframes browser path`. Assert every attack fails, parent URL is unchanged, shell cookies/storage remain unreadable, no popup opens, and browser security reports CSP-blocked external/authenticated requests. Request interception may record evidence but must not be the blocking mechanism. Also test accepted play/seek messages and rejected wrong-source, wrong-nonce, and unknown-action messages.
 
 Run:
 
@@ -627,13 +631,26 @@ Use 1920×1080 at 30 FPS. Do not add improvements unavailable to the existing pi
 
 Store anonymous ballots under ignored `review/generated/<pack>/ballots/`. `aggregate-review.ts` validates exactly three ballots against the committed schema, resolves the answer key, and writes `result.json` with per-dimension counts and overall pass/fail.
 
-- [ ] **Step 5: Test and commit the frozen gate**
+- [ ] **Step 5: Add exact gate scripts before rendering**
 
-Add small fixture tests for timing percentile math, A/B assignment completeness, ballot validation, and tie failure. Then:
+Add to `package.json`:
+
+```json
+"hf:poc:baseline": "tsx scripts/hyperframes/prepare-remotion-baseline.ts --render",
+"hf:poc:score-captions": "tsx scripts/hyperframes/score-caption-timing.ts --labels hyperframes/knowledge-poc/review/generated/caption-labels.json --approval hyperframes/knowledge-poc/work/approval.json",
+"hf:poc:prepare-review": "tsx scripts/hyperframes/prepare-review.ts --approval hyperframes/knowledge-poc/work/approval.json",
+"hf:poc:aggregate-review": "tsx scripts/hyperframes/aggregate-review.ts --approval hyperframes/knowledge-poc/work/approval.json"
+```
+
+Each script records and verifies the approved artifact digest and Remotion baseline digest. Caption scoring and aggregation exit non-zero when thresholds fail, ballots are stale/missing, or either pack does not pass.
+
+- [ ] **Step 6: Test and commit the frozen gate**
+
+Add small fixture tests for timing percentile math, A/B assignment completeness, digest matching, ballot validation, and tie failure. Then:
 
 ```bash
 npm run test:hf-poc
-git add hyperframes/knowledge-poc/review scripts/hyperframes/prepare-remotion-baseline.ts scripts/hyperframes/score-caption-timing.ts scripts/hyperframes/prepare-review.ts scripts/hyperframes/aggregate-review.ts
+git add package.json package-lock.json hyperframes/knowledge-poc/review scripts/hyperframes/prepare-remotion-baseline.ts scripts/hyperframes/score-caption-timing.ts scripts/hyperframes/prepare-review.ts scripts/hyperframes/aggregate-review.ts
 git commit -m "test: freeze HyperFrames quality gate"
 ```
 
@@ -646,7 +663,7 @@ git commit -m "test: freeze HyperFrames quality gate"
 
 - [ ] **Step 1: Preview the exact immutable digest**
 
-Run `npm run hf:poc:preview`. The script reads `work/latest-artifact.json`, verifies its manifest, starts HyperFrames play on port 4312 and the trusted sandbox shell on port 4311, then reports only the shell URL. Stop for user review.
+Run `npm run hf:poc:preview`. The script reads `work/latest-artifact.json`, verifies its manifest, serves the custom CSP-enforced preview wrapper and artifact on port 4312 plus the trusted sandbox shell on port 4311, then reports only the shell URL. Stop for user review.
 
 Visual feedback changes source fixtures or Builder code, creates a new digest, and repeats build + gates. Never patch a published artifact.
 
@@ -684,19 +701,37 @@ git commit -m "docs: bind HyperFrames preview approval to render"
 
 - [ ] **Step 1: Render the frozen Remotion baseline**
 
-Run the exact command emitted by `prepare-remotion-baseline.ts`; verify streams and duration with ffprobe.
+```bash
+npm run hf:poc:baseline
+```
+
+The command prepares exact props, renders, runs ffprobe, and writes the baseline digest. Stop on stream/duration failure.
 
 - [ ] **Step 2: Score caption timing**
 
-Label at least 20 boundaries without changing the committed schema or thresholds, then run `score-caption-timing.ts`. Stop on failure.
+Label at least 20 boundaries without changing the committed schema or thresholds, then run:
+
+```bash
+npm run hf:poc:score-captions
+```
+
+Stop on median >100ms, P95 >250ms, stale approval digest, or invalid labels.
 
 - [ ] **Step 3: Prepare and distribute both blinded packs**
 
-Generate `same-assets` and `best-achievable` packs. Do not expose answer keys to reviewers.
+```bash
+npm run hf:poc:prepare-review
+```
+
+Distribute `same-assets` and `best-achievable` A/B videos without answer keys; collect exactly three schema-valid ballots per pack.
 
 - [ ] **Step 4: Aggregate three ballots**
 
-Run `aggregate-review.ts` for both packs. HyperFrames must pass both. If either fails, improve only the demonstrated Builder/scene weakness and repeat milestone 1; do not start database or UI work.
+```bash
+npm run hf:poc:aggregate-review
+```
+
+The command exits non-zero unless both `result.json` payloads have `pass: true` and current approved/baseline digests. If either fails, improve only the demonstrated Builder/scene weakness and repeat milestone 1; do not start database or UI work.
 
 ## Final verification
 
@@ -711,11 +746,15 @@ npm run hf:poc:build
 npm run hf:poc:verify
 npm run hf:poc:preview -- --malicious-test
 npm run hf:poc:render
+npm run hf:poc:baseline
+npm run hf:poc:score-captions
+npm run hf:poc:prepare-review
+npm run hf:poc:aggregate-review
 test -s hyperframes/knowledge-poc/review/generated/hyperframes.mp4
 ffprobe -v error -show_entries format=duration -show_streams -of json \
   hyperframes/knowledge-poc/review/generated/hyperframes.mp4
-test -f hyperframes/knowledge-poc/review/generated/same-assets/result.json
-test -f hyperframes/knowledge-poc/review/generated/best-achievable/result.json
+node -e "for (const p of ['same-assets','best-achievable']) { const r=require('./hyperframes/knowledge-poc/review/generated/'+p+'/result.json'); if (r.pass !== true) process.exit(1); }"
+node -e "const a=require('./hyperframes/knowledge-poc/work/approval.json'); for (const p of ['same-assets','best-achievable']) { const r=require('./hyperframes/knowledge-poc/review/generated/'+p+'/result.json'); if (r.artifactDigest !== a.artifactDigest) process.exit(1); }"
 
 git status --short
 ```
