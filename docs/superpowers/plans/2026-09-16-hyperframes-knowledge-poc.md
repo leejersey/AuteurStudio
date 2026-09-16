@@ -427,6 +427,7 @@ Given validated fixtures, assert the generated HTML:
 - contains no `http://`, `https://`, `file://`, `Date.now`, `performance.now`, `Math.random`, `repeat:-1`, `setTimeout`, or runtime `fetch`;
 - has no duplicate IDs;
 - references only files declared in the artifact manifest;
+- contains no inline `<script>` or `<style>` blocks: composition CSS lives in `assets/composition.css` and timeline code in `assets/timeline.js`;
 - renders hostile text such as `</script><script>alert(1)</script>` and `\" onerror=\"alert(1)` as inert literal text, with no injected element, event handler, selector, CSS token, or executable script.
 
 Run `npm run test:hf-poc`; expected FAIL.
@@ -452,7 +453,7 @@ Generate captions from manifest words in one direct-root caption clip. Use stati
 - a verified local Noto Sans SC WOFF2 from the installed `@fontsource/noto-sans-sc` package → `artifact/assets/fonts/noto-sans-sc.woff2`;
 - generated segment audio → `artifact/assets/audio/`.
 
-Generate `@font-face` and only relative asset paths. Write `index.html`, human-readable `SCRIPT.md`, `STORYBOARD.md`, `design.md`, and the strict JSON inputs into the artifact.
+Generate `@font-face` in `assets/composition.css` and the paused GSAP timeline in `assets/timeline.js`; `index.html` references only local external scripts/styles so the preview origin can enforce `script-src 'self'` and `style-src 'self'` without unsafe-inline. Write the human-readable `SCRIPT.md`, `STORYBOARD.md`, `design.md`, and strict JSON inputs into the artifact.
 
 - [ ] **Step 4: Build and run unit tests**
 
@@ -569,15 +570,22 @@ The fixture attempts to read `parent.document`, cookies, localStorage, navigate 
 
 - [ ] **Step 2: Implement both origins and enforce policy on the untrusted origin**
 
-Serve the trusted shell on `127.0.0.1:4311`. On `127.0.0.1:4312`, `serve-review-shell.ts` serves a tiny preview wrapper, `node_modules/hyperframes/dist/hyperframes-player.global.js`, and the approved artifact under `/composition/`; do not delegate to raw `hyperframes play`.
+Serve the trusted shell on `127.0.0.1:4311`. On `127.0.0.1:4312`, `serve-review-shell.ts` reproduces the required parts of HyperFrames 0.8.41's composition server rather than delegating to raw `hyperframes play`:
 
-Every 4312 response sets a restrictive CSP appropriate to its MIME type: `default-src 'self'`; `connect-src 'none'`; no forms, objects, base rewriting, or top navigation; scripts/styles/fonts/media only from the same preview origin; `frame-ancestors http://127.0.0.1:4311`. The wrapper instantiates `<hyperframes-player sandbox-origin src="/composition/index.html">` and contains the only relay. It validates `event.source`, the opaque sandbox origin (`event.origin === "null"` where applicable), a per-session nonce, and an exact schema, then maps only `play`, `pause`, `seek`, and read-only state requests to the player's public methods/properties.
+- `/player.js` serves `node_modules/hyperframes/dist/hyperframes-player.global.js`;
+- `/runtime.js` serves the pinned `node_modules/hyperframes/dist/hyperframe.runtime.iife.js` (falling back only to the verified 0.8.41 package runtime path captured in a test);
+- `/composition/*.html` reads the immutable artifact HTML and injects `<script src="/runtime.js"></script>` at the start of `<head>` exactly once;
+- `/composition/*` serves only canonical files inside the approved digest directory.
+
+Use route-specific CSP headers. The 4312 wrapper permits only same-origin scripts/styles/fonts/media, `connect-src 'none'`, no forms/objects/base/top-navigation, and `frame-ancestors http://127.0.0.1:4311`. Composition HTML permits the pinned local runtime/GSAP/timeline files plus local styles/fonts/media and `connect-src 'none'`; its `frame-ancestors` policy must be tested against the real nested opaque wrapper chain and may be omitted for this route if a restrictive value blocks the required nested player iframe. Static assets receive `default-src 'none'`. No response permits remote fetches or inline script/style.
+
+The wrapper instantiates `<hyperframes-player sandbox-origin src="/composition/index.html">` and contains the only relay. It validates `event.source`, the opaque sandbox origin (`event.origin === "null"` where applicable), a per-session nonce, and an exact schema, then maps only `play`, `pause`, `seek`, and read-only state requests to the player's public methods/properties.
 
 The 4311 shell embeds the 4312 wrapper with `sandbox="allow-scripts"` only—no `allow-same-origin`, navigation, forms, or popups—and has its own restrictive CSP. It applies the same source/origin/nonce/schema checks.
 
 - [ ] **Step 3: Automate the boundary test**
 
-Use direct `puppeteer-core` and the browser path returned by `hyperframes browser path`. Assert every attack fails, parent URL is unchanged, shell cookies/storage remain unreadable, no popup opens, and browser security reports CSP-blocked external/authenticated requests. Request interception may record evidence but must not be the blocking mechanism. Also test accepted play/seek messages and rejected wrong-source, wrong-nonce, and unknown-action messages.
+Use direct `puppeteer-core` and the browser path returned by `hyperframes browser path`. Assert every attack fails, parent URL is unchanged, shell cookies/storage remain unreadable, no popup opens, and browser security reports CSP-blocked external/authenticated requests. Request interception may record evidence but must not be the blocking mechanism. Before protocol tests, require the real player to emit `ready` and report the manifest's expected duration. Then verify accepted `seek` changes `currentTime`, `play` advances it, and wrong-source, wrong-nonce, unknown-action messages are rejected under the actual CSP.
 
 Run:
 
