@@ -30,6 +30,7 @@ Thumbs.db
 
 # tmp files
 /tmp/
+/.worktrees/
 
 # remotion render output
 /renders/
