@@ -1,14 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: [
-    "remotion",
-    "@remotion/renderer",
-    "@remotion/bundler",
-    "@remotion/media-utils",
-    "@tavily/core",
-    "esbuild",
-  ],
+  allowedDevOrigins: ["192.168.5.219", "192.168.5.180", "localhost", "127.0.0.1"],
   turbopack: {},
 };
 

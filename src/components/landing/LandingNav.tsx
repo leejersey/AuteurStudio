@@ -12,12 +12,12 @@ export default function LandingNav() {
           <Link className="text-on-background/70 hover:text-primary transition-colors duration-300" href="#pricing">Pricing</Link>
         </div>
         <div className="flex items-center gap-6">
-          <Link href="/login" className="text-on-background/70 font-headline hover:text-primary transition-all font-medium">
-            Login
+          <Link href="/export" className="text-on-background/70 font-headline hover:text-primary transition-all font-medium">
+            导出中心
           </Link>
-          <Link href="/studio">
-            <button className="bg-gradient-to-r from-primary to-primary-container text-on-primary-fixed px-6 py-2 rounded-lg font-bold font-headline active:scale-95 duration-200 shadow-[0_0_20px_rgba(153,247,255,0.15)]">
-              Start Creating
+          <Link href="/code-studio">
+            <button className="primary-gradient text-on-primary-fixed px-6 py-2 rounded-lg font-bold font-headline active:scale-95 duration-200">
+              进入代码工坊
             </button>
           </Link>
         </div>

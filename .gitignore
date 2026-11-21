@@ -32,9 +32,10 @@ Thumbs.db
 /tmp/
 /.worktrees/
 
-# remotion render output
+# render & hyperframes generated artifacts
 /renders/
 /public/renders/
+/hyperframes/
 
 # stitch design assets (本地设计稿)
 /.stitch_downloads/

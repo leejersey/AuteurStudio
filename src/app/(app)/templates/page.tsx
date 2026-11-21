@@ -1,115 +1,151 @@
-import TopNavBar from "@/components/layout/TopNavBar";
-import SideNavBar from "@/components/layout/SideNavBar";
 import Link from "next/link";
+import SideNavBar from "@/components/layout/SideNavBar";
+import { STAGE_PALETTES, type StageThemeId } from "@/code-stage/stage-themes";
 
-const ALL_TEMPLATES = [
+const THEME_CARDS: Array<{
+  id: StageThemeId;
+  name: string;
+  badge: string;
+  description: string;
+}> = [
   {
-    id: "dark-tech",
-    name: "暗黑科技",
-    description: "深色背景 + 科技感光效 + 网格纹理",
-    thumbnail: "linear-gradient(135deg, #0b0e14 0%, #161a21 40%, #00e2ee22 100%)",
-    videoTypes: ["图文视频 (9:16)", "算法动画 (16:9)", "知识讲解 (16:9)", "Markdown (16:9)"],
+    id: "dracula",
+    name: "Dracula（默认）",
+    badge: "紫粉暗夜",
+    description: "经典 Dracula 深紫灰画布 + 紫粉荧光焦点条，高辨识度极客美学。",
   },
   {
-    id: "minimal-white",
-    name: "极简白色",
-    description: "白色背景 + 衬线标题 + 卡片式排版，适合干净专业的内容呈现",
-    thumbnail: "linear-gradient(135deg, #fafafa 0%, #f0f0f0 50%, #3b82f615 100%)",
-    videoTypes: ["图文视频 (9:16)", "算法动画 (16:9)", "知识讲解 (16:9)", "Markdown (16:9)"],
+    id: "tokyo-night",
+    name: "Tokyo Night",
+    badge: "深海青蓝",
+    description: "东京暗夜深蓝底色搭配清爽青蓝高亮，适合硬核工程与系统架构讲解。",
+  },
+  {
+    id: "github-dark",
+    name: "GitHub Dark",
+    badge: "极简开源",
+    description: "贴近 GitHub 源码阅读体验的中性深灰配色，适合开源项目与 PR 拆解。",
+  },
+  {
+    id: "catppuccin-mocha",
+    name: "Catppuccin Mocha",
+    badge: "柔和粉彩",
+    description: "低对比柔和莫兰迪暗色调，长时间观看不刺眼，适合长篇语法教程。",
+  },
+  {
+    id: "one-dark-pro",
+    name: "One Dark Pro",
+    badge: "经典 IDE",
+    description: "VS Code 装机量第一的经典均衡暗色主题，语法层次清晰分明。",
   },
 ];
 
 export default function TemplatesPage() {
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen w-screen overflow-hidden bg-background text-on-surface">
       <SideNavBar />
-      
-      <div className="flex-1 flex flex-col min-w-0">
-        <TopNavBar title="模板中心" />
-        
-        <main className="flex-1 overflow-y-auto bg-background p-8 font-body">
-          <div className="max-w-6xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-on-surface font-headline flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">auto_awesome_motion</span>
-              视频模板库
-            </h1>
-            <p className="text-sm text-on-surface-variant mt-2">
-              在这里浏览并管理可用的视频渲染模板。选择模板开始创作你想要的风格。
-            </p>
-          </div>
+
+      <main className="flex-1 overflow-y-auto p-8 z-10">
+        <div className="max-w-6xl mx-auto flex flex-col gap-8">
+          <header className="flex items-end justify-between gap-4">
+            <div>
+              <div className="text-xs font-mono text-primary uppercase tracking-widest">
+                HyperFrames Stage Themes
+              </div>
+              <h1 className="text-3xl font-bold font-headline mt-1">舞台配色与视频模板中心</h1>
+              <p className="text-sm text-on-surface-variant mt-1">
+                所有主题同时驱动 CodeStage（语法演进）与 AlgoStage（算法沙箱）的整套舞台色板与 Shiki 高亮。
+              </p>
+            </div>
+            <Link
+              href="/code-studio"
+              className="px-4 py-2 rounded-xl primary-gradient text-on-primary-fixed text-xs font-bold hover:opacity-90 transition shrink-0"
+            >
+              前往代码工坊
+            </Link>
+          </header>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {ALL_TEMPLATES.map((tpl) => (
-              <div
-                key={tpl.id}
-                className="bg-surface-container-low border border-outline-variant/15 rounded-2xl overflow-hidden hover:border-primary/30 transition-all duration-300 group flex flex-col"
-              >
-                {/* 封面 */}
+            {THEME_CARDS.map((card) => {
+              const p = STAGE_PALETTES[card.id];
+              return (
                 <div
-                  className="h-48 w-full relative"
-                  style={{ background: tpl.thumbnail }}
+                  key={card.id}
+                  className="rounded-2xl border border-white/10 bg-surface-container/80 overflow-hidden flex flex-col hover:border-primary/40 transition"
                 >
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                  
-                  {/* 模拟排版预览图 */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    {tpl.id === "dark-tech" ? (
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="w-16 h-2 rounded bg-white/30" />
-                        <div className="w-24 h-3 rounded bg-white/40" />
-                        <div className="w-12 h-1.5 rounded bg-cyan-400/50 mt-2" />
+                  {/* 真实色板微缩舞台预览 */}
+                  <div
+                    className="h-44 p-4 flex flex-col justify-between relative overflow-hidden"
+                    style={{
+                      background: `radial-gradient(240px 140px at 18% 15%, ${p.glow1}, transparent 70%), radial-gradient(220px 140px at 85% 90%, ${p.glow2}, transparent 70%), linear-gradient(180deg, ${p.canvasBg} 0%, ${p.canvasBgEnd} 100%)`,
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span
+                        className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold"
+                        style={{ background: p.focusBg, color: p.primary, border: `1px solid ${p.primary}` }}
+                      >
+                        {card.badge}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {[p.primary, p.secondary, p.success, p.warn].map((hex) => (
+                          <span
+                            key={hex}
+                            className="w-3 h-3 rounded-full border border-black/30"
+                            style={{ background: hex }}
+                          />
+                        ))}
                       </div>
-                    ) : (
-                      <div className="flex flex-col items-start gap-4 p-8 w-full h-full justify-center">
-                        <div className="w-16 h-3 rounded bg-gray-900/30" />
-                        <div className="w-12 h-1 rounded bg-blue-500/40" />
-                        <div className="w-24 h-2 rounded bg-gray-900/15" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 内容 */}
-                <div className="p-5 flex flex-col flex-1">
-                  <h3 className="text-lg font-bold text-on-surface mb-2">{tpl.name}</h3>
-                  <p className="text-sm text-on-surface-variant/80 mb-4 line-clamp-2">
-                    {tpl.description}
-                  </p>
-
-                  <div className="mt-auto">
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {tpl.videoTypes.map((type, index) => (
-                         <span key={index} className="text-[10px] px-2 py-1 rounded bg-surface-container-high text-on-surface-variant border border-outline-variant/10">
-                           {type}
-                         </span>
-                      ))}
                     </div>
 
-                    <Link
-                      href="/studio"
-                      className="w-full py-2.5 bg-primary/10 hover:bg-primary/20 text-primary text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+                    {/* 微缩代码编辑器卡片 */}
+                    <div
+                      className="rounded-xl p-3 font-mono text-[11px] leading-relaxed shadow-lg"
+                      style={{ background: p.panelBg, border: `1px solid ${p.border}`, color: p.text }}
                     >
-                      <span className="material-symbols-outlined text-sm">edit</span>
-                      使用此模板创作
-                    </Link>
+                      <div style={{ color: p.muted }}>{"// " + card.id}</div>
+                      <div>
+                        <span style={{ color: p.secondary }}>function</span>{" "}
+                        <span style={{ color: p.success }}>solve</span>
+                        <span>(nums) {"{"}</span>
+                      </div>
+                      <div
+                        className="px-1.5 rounded -mx-1.5"
+                        style={{ background: p.focusBg, borderLeft: `2px solid ${p.secondary}` }}
+                      >
+                        <span style={{ color: p.primary }}>return</span> nums.length;
+                      </div>
+                      <div>{"}"}</div>
+                    </div>
+                  </div>
+
+                  {/* 卡片信息与操作 */}
+                  <div className="p-5 flex-1 flex flex-col gap-3">
+                    <div>
+                      <h2 className="text-base font-bold font-headline">{card.name}</h2>
+                      <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">{card.description}</p>
+                    </div>
+                    <div className="mt-auto pt-2 flex gap-2">
+                      <Link
+                        href={`/code-studio?theme=${card.id}&mode=code-stage`}
+                        className="flex-1 text-center py-2 rounded-xl primary-gradient text-on-primary-fixed text-xs font-bold hover:opacity-90 transition"
+                      >
+                        用于语法视频
+                      </Link>
+                      <Link
+                        href={`/code-studio?theme=${card.id}&mode=algo-stage`}
+                        className="flex-1 text-center py-2 rounded-xl bg-surface-container-high border border-white/10 hover:border-primary/40 text-xs font-bold text-on-surface transition"
+                      >
+                        用于算法动画
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            
-            {/* 即将推出占位 */}
-            <div className="bg-surface-container-low border border-dashed border-outline-variant/20 rounded-2xl p-6 flex flex-col items-center justify-center text-center opacity-70 min-h-[350px]">
-              <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center mb-4">
-                <span className="material-symbols-outlined text-2xl text-on-surface-variant">hourglass_empty</span>
-              </div>
-              <p className="text-on-surface font-bold mb-1">更多模板正在开发中</p>
-              <p className="text-sm text-on-surface-variant">敬请期待更多风格组合</p>
-            </div>
+              );
+            })}
           </div>
         </div>
       </main>
-      </div>
     </div>
   );
 }
