@@ -4,6 +4,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { buildCodeStage, type CodeStageBundle } from "./builder";
 import { loadEnvValue } from "./env";
+import { freezeBgmAsset } from "./packaging";
 import { buildRepairPrompt, buildUserPrompt, CODE_STAGE_SYSTEM_PROMPT, type CodeStagePromptRequest } from "./prompt";
 import { codeStageSpecSchema, type CodeStageSpec } from "./schema";
 import { runHyperFramesGate, validateCodeStageSemantics, type ValidationIssue } from "./validator";
@@ -111,6 +112,7 @@ export function writeCodeStageProject(
   );
   if (!existsSync(fontSrc)) throw new Error("未找到本地 noto-sans-sc 字体");
   copyFileSync(fontSrc, join(absOut, "assets/fonts/noto-sans-sc.woff2"));
+  freezeBgmAsset(absOut, spec.packaging?.bgmFile, cwd);
 }
 
 /**

@@ -1,6 +1,16 @@
 import { diffCodeLines, type CodeStepDiff } from "./diff";
 import { highlightCode, type HighlightedCode } from "./highlighter";
-import { codeStageSpecSchema, getTotalDuration, type CodeStageSpec, type CodeStep, type AudioSegment } from "./schema";
+import {
+  buildPackagingCss,
+  buildPackagingTimelineJs,
+  computePackagingMetrics,
+  renderBgmAudioHtml,
+  renderIntroHtml,
+  renderOutroHtml,
+  type BgmClipSpec,
+  type PackagingMetrics,
+} from "./packaging";
+import { codeStageSpecSchema, type CodeStageSpec, type CodeStep, type AudioSegment } from "./schema";
 import { getStagePalette, type StagePalette } from "./stage-themes";
 
 export interface CodeStageBundle {
@@ -56,6 +66,7 @@ function renderStepSection(
   highlighted: HighlightedCode,
   diff: CodeStepDiff,
   language: string,
+  timeOffset: number,
 ): string {
   const hasSidePanel = Boolean(step.callout || step.terminal);
   const focusSet = new Set(step.focusLines ?? []);
@@ -111,7 +122,7 @@ function renderStepSection(
     ? `<div class="side-panel">${calloutHtml}${terminalHtml}</div>`
     : "";
 
-  return `<section class="clip step-scene" id="${step.id}" data-start="${fmtNum(step.start)}" data-duration="${fmtNum(step.duration)}" data-track-index="1">
+  return `<section class="clip step-scene" id="${step.id}" data-start="${fmtNum(step.start + timeOffset)}" data-duration="${fmtNum(step.duration)}" data-track-index="1">
   <header class="stage-header" id="${step.id}-header">
     <div class="header-left">
       ${step.badge ? `<span class="step-badge" id="${step.id}-badge">${escapeHtml(step.badge)}</span>` : ""}
@@ -139,7 +150,7 @@ function renderStepSection(
 </section>`;
 }
 
-function renderCaptionsHtml(spec: CodeStageSpec): string {
+function renderCaptionsHtml(spec: CodeStageSpec, timeOffset: number): string {
   if (spec.audio) {
     // 基于火山 V3 字级时间戳渲染同步字幕片段
     return spec.audio.segments
@@ -147,7 +158,7 @@ function renderCaptionsHtml(spec: CodeStageSpec): string {
         const wordsHtml = seg.words
           .map((w, wIdx) => `<span class="cap-word" id="cap-w-${sIdx}-${wIdx}">${escapeHtml(w.text)}</span>`)
           .join("");
-        return `<div class="clip caption-clip" id="caption-seg-${seg.id}" data-start="${fmtNum(seg.start)}" data-duration="${fmtNum(seg.duration)}" data-track-index="2"><div class="caption-pill">${wordsHtml}</div></div>`;
+        return `<div class="clip caption-clip" id="caption-seg-${seg.id}" data-start="${fmtNum(seg.start + timeOffset)}" data-duration="${fmtNum(seg.duration)}" data-track-index="2"><div class="caption-pill">${wordsHtml}</div></div>`;
       })
       .join("\n");
   }
@@ -156,17 +167,17 @@ function renderCaptionsHtml(spec: CodeStageSpec): string {
   return spec.steps
     .map(
       (step) =>
-        `<div class="clip caption-clip" id="caption-step-${step.id}" data-start="${fmtNum(step.start)}" data-duration="${fmtNum(step.duration)}" data-track-index="2"><div class="caption-pill"><span class="cap-static">${escapeHtml(step.narration)}</span></div></div>`,
+        `<div class="clip caption-clip" id="caption-step-${step.id}" data-start="${fmtNum(step.start + timeOffset)}" data-duration="${fmtNum(step.duration)}" data-track-index="2"><div class="caption-pill"><span class="cap-static">${escapeHtml(step.narration)}</span></div></div>`,
     )
     .join("\n");
 }
 
-function renderAudioClipsHtml(segments: AudioSegment[] | undefined): string {
+function renderAudioClipsHtml(segments: AudioSegment[] | undefined, timeOffset: number): string {
   if (!segments || segments.length === 0) return "";
   return segments
     .map(
       (seg) =>
-        `<audio id="audio-${seg.id}" class="clip" src="${escapeHtml(seg.file)}" data-start="${fmtNum(seg.start)}" data-duration="${fmtNum(seg.duration)}" data-track-index="0" preload="auto"></audio>`,
+        `<audio id="audio-${seg.id}" class="clip" src="${escapeHtml(seg.file)}" data-start="${fmtNum(seg.start + timeOffset)}" data-duration="${fmtNum(seg.duration)}" data-track-index="0" preload="auto"></audio>`,
     )
     .join("\n");
 }
@@ -175,15 +186,18 @@ function buildTimelineScript(
   spec: CodeStageSpec,
   diffs: CodeStepDiff[],
   lineHeightPx: number,
+  pkgMetrics: PackagingMetrics,
+  bgmClips: BgmClipSpec[],
 ): string {
   const lines: string[] = [
     '"use strict";',
     "window.__timelines = window.__timelines || {};",
     "const tl = gsap.timeline({ paused: true });",
   ];
+  const timeOffset = pkgMetrics.introOffset;
 
   spec.steps.forEach((step, stepIndex) => {
-    const t0 = step.start;
+    const t0 = step.start + timeOffset;
     const diff = diffs[stepIndex];
     const focusSet = new Set(step.focusLines ?? []);
 
@@ -278,11 +292,22 @@ function buildTimelineScript(
       seg.words.forEach((word, wIdx) => {
         const dur = Math.max(0.05, word.end - word.start);
         lines.push(
-          `tl.fromTo("#cap-w-${sIdx}-${wIdx}", { color: "#94a3b8" }, { color: "#f8fafc", duration: ${fmtNum(Math.min(0.12, dur))}, ease: "none", immediateRender: false }, ${fmtNum(word.start)});`,
+          `tl.fromTo("#cap-w-${sIdx}-${wIdx}", { color: "#94a3b8" }, { color: "#f8fafc", duration: ${fmtNum(Math.min(0.12, dur))}, ease: "none", immediateRender: false }, ${fmtNum(word.start + timeOffset)});`,
         );
       });
     });
   }
+
+  // 7. 片头 / 片尾 / BGM Auto-Ducking 动效
+  lines.push(
+    ...buildPackagingTimelineJs({
+      packaging: spec.packaging,
+      metrics: pkgMetrics,
+      hasNarrationAudio: Boolean(spec.audio?.segments.length),
+      bgmClips,
+      outroPointCount: spec.packaging?.outroPoints?.length || Math.min(3, spec.steps.length),
+    }),
+  );
 
   lines.push(`window.__timelines["${spec.meta.id}"] = tl;`);
   return lines.join("\n");
@@ -792,8 +817,13 @@ ${
  */
 export async function buildCodeStage(rawSpec: CodeStageSpec): Promise<CodeStageBundle> {
   const spec = codeStageSpecSchema.parse(rawSpec);
-  const duration = getTotalDuration(spec);
-  const { id, width, height, fps, language, shikiTheme, title } = spec.meta;
+  const lastStep = spec.steps[spec.steps.length - 1];
+  const rawContentDuration = spec.audio
+    ? Math.max(lastStep.start + lastStep.duration, spec.audio.duration)
+    : lastStep.start + lastStep.duration;
+  const pkgMetrics = computePackagingMetrics(rawContentDuration, spec.packaging);
+  const duration = pkgMetrics.totalDuration;
+  const { id, width, height, fps, language, shikiTheme, title, subtitle } = spec.meta;
 
   const diffs: CodeStepDiff[] = [];
   const highlightedSteps: HighlightedCode[] = [];
@@ -804,16 +834,31 @@ export async function buildCodeStage(rawSpec: CodeStageSpec): Promise<CodeStageB
     highlightedSteps.push(await highlightCode(spec.steps[i].code, language, shikiTheme));
   }
 
+  const introHtml = renderIntroHtml({
+    packaging: spec.packaging,
+    title,
+    subtitle,
+    badges: ["CODE STAGE", language.toUpperCase(), `${spec.steps.length} STEPS`],
+  });
   const sectionsHtml = spec.steps
-    .map((step, idx) => renderStepSection(step, idx, spec.steps.length, highlightedSteps[idx], diffs[idx], language))
+    .map((step, idx) =>
+      renderStepSection(step, idx, spec.steps.length, highlightedSteps[idx], diffs[idx], language, pkgMetrics.introOffset),
+    )
     .join("\n");
+  const outroHtml = renderOutroHtml({
+    packaging: spec.packaging,
+    outroStart: pkgMetrics.outroStart,
+    title,
+    fallbackPoints: spec.steps.map((s) => s.headline),
+  });
+  const bgm = renderBgmAudioHtml(spec.packaging, duration);
 
   const palette = getStagePalette(shikiTheme);
   const metrics = computeCodeMetrics(spec.steps, height > width);
-  const captionsHtml = renderCaptionsHtml(spec);
-  const audioHtml = renderAudioClipsHtml(spec.audio?.segments);
-  const timelineJs = buildTimelineScript(spec, diffs, metrics.lineHeight);
-  const stylesCss = buildStylesCss(width, height, metrics, palette);
+  const captionsHtml = renderCaptionsHtml(spec, pkgMetrics.introOffset);
+  const audioHtml = renderAudioClipsHtml(spec.audio?.segments, pkgMetrics.introOffset);
+  const timelineJs = buildTimelineScript(spec, diffs, metrics.lineHeight, pkgMetrics, bgm.clips);
+  const stylesCss = `${buildStylesCss(width, height, metrics, palette)}\n${buildPackagingCss(palette, height > width)}`;
 
   const indexHtml = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -834,8 +879,11 @@ export async function buildCodeStage(rawSpec: CodeStageSpec): Promise<CodeStageB
   >
     <div class="stage-bg" aria-hidden="true"></div>
     <div class="stage-grid" aria-hidden="true"></div>
+    ${bgm.html}
     ${audioHtml}
+    ${introHtml}
     ${sectionsHtml}
+    ${outroHtml}
     ${captionsHtml}
   </div>
   <script>

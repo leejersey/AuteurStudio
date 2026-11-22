@@ -1,8 +1,18 @@
 import { highlightCode, type HighlightedCode } from "../code-stage/highlighter";
+import {
+  buildPackagingCss,
+  buildPackagingTimelineJs,
+  computePackagingMetrics,
+  renderBgmAudioHtml,
+  renderIntroHtml,
+  renderOutroHtml,
+  type BgmClipSpec,
+  type PackagingMetrics,
+} from "../code-stage/packaging";
 import type { AudioSegment } from "../code-stage/schema";
 import { getStagePalette, type StagePalette } from "../code-stage/stage-themes";
 import { renderStructureSvg } from "./renderers";
-import { algoStageSpecSchema, getAlgoTotalDuration, type AlgoStageSpec, type AlgoTraceFrame } from "./schema";
+import { algoStageSpecSchema, type AlgoStageSpec, type AlgoTraceFrame } from "./schema";
 
 export interface AlgoStageBundle {
   files: Record<string, string>;
@@ -61,6 +71,7 @@ function renderFrameSection(
   spec: AlgoStageSpec,
   highlighted: HighlightedCode,
   svgHtml: string,
+  timeOffset: number,
 ): string {
   const eventInfo = EVENT_LABELS[frame.event];
   const progressPct = Math.round(((frameIdx + 1) / totalFrames) * 100);
@@ -98,7 +109,7 @@ function renderFrameSection(
       </div>`
     : "";
 
-  return `<section class="clip algo-scene" id="${frame.id}" data-start="${fmtNum(frame.start)}" data-duration="${fmtNum(frame.duration)}" data-track-index="1">
+  return `<section class="clip algo-scene" id="${frame.id}" data-start="${fmtNum(frame.start + timeOffset)}" data-duration="${fmtNum(frame.duration)}" data-track-index="1">
   <header class="algo-header">
     <div class="header-left">
       <span class="algo-badge">${escapeHtml(spec.meta.algorithm)}</span>
@@ -141,31 +152,31 @@ function renderFrameSection(
 </section>`;
 }
 
-function renderCaptionsHtml(spec: AlgoStageSpec): string {
+function renderCaptionsHtml(spec: AlgoStageSpec, timeOffset: number): string {
   if (spec.audio) {
     return spec.audio.segments
       .map((seg, sIdx) => {
         const wordsHtml = seg.words
           .map((w, wIdx) => `<span class="cap-word" id="cap-w-${sIdx}-${wIdx}">${escapeHtml(w.text)}</span>`)
           .join("");
-        return `<div class="clip caption-clip" id="caption-seg-${seg.id}" data-start="${fmtNum(seg.start)}" data-duration="${fmtNum(seg.duration)}" data-track-index="2"><div class="caption-pill">${wordsHtml}</div></div>`;
+        return `<div class="clip caption-clip" id="caption-seg-${seg.id}" data-start="${fmtNum(seg.start + timeOffset)}" data-duration="${fmtNum(seg.duration)}" data-track-index="2"><div class="caption-pill">${wordsHtml}</div></div>`;
       })
       .join("\n");
   }
   return spec.frames
     .map(
       (f) =>
-        `<div class="clip caption-clip" id="caption-${f.id}" data-start="${fmtNum(f.start)}" data-duration="${fmtNum(f.duration)}" data-track-index="2"><div class="caption-pill">${escapeHtml(f.narration)}</div></div>`,
+        `<div class="clip caption-clip" id="caption-${f.id}" data-start="${fmtNum(f.start + timeOffset)}" data-duration="${fmtNum(f.duration)}" data-track-index="2"><div class="caption-pill">${escapeHtml(f.narration)}</div></div>`,
     )
     .join("\n");
 }
 
-function renderAudioHtml(segments: AudioSegment[] | undefined): string {
+function renderAudioHtml(segments: AudioSegment[] | undefined, timeOffset: number): string {
   if (!segments?.length) return "";
   return segments
     .map(
       (seg) =>
-        `<audio id="audio-${seg.id}" class="clip" src="${escapeHtml(seg.file)}" data-start="${fmtNum(seg.start)}" data-duration="${fmtNum(seg.duration)}" data-track-index="0" preload="auto"></audio>`,
+        `<audio id="audio-${seg.id}" class="clip" src="${escapeHtml(seg.file)}" data-start="${fmtNum(seg.start + timeOffset)}" data-duration="${fmtNum(seg.duration)}" data-track-index="0" preload="auto"></audio>`,
     )
     .join("\n");
 }
@@ -174,15 +185,18 @@ function buildTimelineJs(
   spec: AlgoStageSpec,
   pointerCoordsPerFrame: Array<Record<string, { x: number; y: number }>>,
   cellCoordsPerFrame: Array<Record<number, { x: number; y: number }> | undefined>,
+  pkgMetrics: PackagingMetrics,
+  bgmClips: BgmClipSpec[],
 ): string {
   const lines: string[] = [
     '"use strict";',
     "window.__timelines = window.__timelines || {};",
     "const tl = gsap.timeline({ paused: true });",
   ];
+  const timeOffset = pkgMetrics.introOffset;
 
   spec.frames.forEach((frame, idx) => {
-    const t0 = frame.start;
+    const t0 = frame.start + timeOffset;
     const prevCoords = idx > 0 ? pointerCoordsPerFrame[idx - 1] : null;
     const currCoords = pointerCoordsPerFrame[idx];
 
@@ -267,11 +281,21 @@ function buildTimelineJs(
       seg.words.forEach((word, wIdx) => {
         const dur = Math.max(0.05, word.end - word.start);
         lines.push(
-          `tl.fromTo("#cap-w-${sIdx}-${wIdx}", { color: "#94a3b8" }, { color: "#f8fafc", duration: ${fmtNum(Math.min(0.12, dur))}, ease: "none", immediateRender: false }, ${fmtNum(word.start)});`,
+          `tl.fromTo("#cap-w-${sIdx}-${wIdx}", { color: "#94a3b8" }, { color: "#f8fafc", duration: ${fmtNum(Math.min(0.12, dur))}, ease: "none", immediateRender: false }, ${fmtNum(word.start + timeOffset)});`,
         );
       });
     });
   }
+
+  lines.push(
+    ...buildPackagingTimelineJs({
+      packaging: spec.packaging,
+      metrics: pkgMetrics,
+      hasNarrationAudio: Boolean(spec.audio?.segments.length),
+      bgmClips,
+      outroPointCount: spec.packaging?.outroPoints?.length || Math.min(3, spec.frames.length),
+    }),
+  );
 
   lines.push(`window.__timelines["${spec.meta.id}"] = tl;`);
   return lines.join("\n");
@@ -740,29 +764,51 @@ ${
 
 export async function buildAlgoStage(rawSpec: AlgoStageSpec): Promise<AlgoStageBundle> {
   const spec = algoStageSpecSchema.parse(rawSpec);
-  const duration = getAlgoTotalDuration(spec);
-  const { id, width, height, fps, language, shikiTheme, title } = spec.meta;
+  const lastFrame = spec.frames[spec.frames.length - 1];
+  const rawContentDuration = spec.audio
+    ? Math.max(lastFrame.start + lastFrame.duration, spec.audio.duration)
+    : lastFrame.start + lastFrame.duration;
+  const pkgMetrics = computePackagingMetrics(rawContentDuration, spec.packaging);
+  const duration = pkgMetrics.totalDuration;
+  const { id, width, height, fps, language, shikiTheme, title, algorithm, complexity } = spec.meta;
 
   const highlighted = await highlightCode(spec.code, language, shikiTheme);
   const metrics = computeCodeMetrics(spec.code, height > width);
 
   const pointerCoordsPerFrame: Array<Record<string, { x: number; y: number }>> = [];
   const cellCoordsPerFrame: Array<Record<number, { x: number; y: number }> | undefined> = [];
+  const introHtml = renderIntroHtml({
+    packaging: spec.packaging,
+    title,
+    subtitle: complexity ? `时间复杂度 ${complexity.time} · 空间复杂度 ${complexity.space}` : undefined,
+    badges: ["ALGO STAGE", algorithm, language.toUpperCase()],
+  });
   const sectionsHtml = spec.frames
     .map((frame, idx) => {
       const rendered = renderStructureSvg(frame.id, frame.structure);
       pointerCoordsPerFrame.push(rendered.pointerCoords);
       cellCoordsPerFrame.push(rendered.cellCoords);
       const prev = idx > 0 ? spec.frames[idx - 1] : null;
-      return renderFrameSection(frame, idx, spec.frames.length, prev, spec, highlighted, rendered.svgHtml);
+      return renderFrameSection(frame, idx, spec.frames.length, prev, spec, highlighted, rendered.svgHtml, pkgMetrics.introOffset);
     })
     .join("\n");
+  const outroHtml = renderOutroHtml({
+    packaging: spec.packaging,
+    outroStart: pkgMetrics.outroStart,
+    title,
+    fallbackPoints: [
+      spec.frames[0]?.note || "初始化指针与数据结构",
+      spec.frames[Math.floor(spec.frames.length / 2)]?.note || "核心循环与状态转移",
+      spec.frames[spec.frames.length - 1]?.note || "得出最终结果",
+    ],
+  });
+  const bgm = renderBgmAudioHtml(spec.packaging, duration);
 
   const palette = getStagePalette(shikiTheme);
-  const timelineJs = buildTimelineJs(spec, pointerCoordsPerFrame, cellCoordsPerFrame);
-  const stylesCss = buildStylesCss(width, height, metrics, palette);
-  const captionsHtml = renderCaptionsHtml(spec);
-  const audioHtml = renderAudioHtml(spec.audio?.segments);
+  const timelineJs = buildTimelineJs(spec, pointerCoordsPerFrame, cellCoordsPerFrame, pkgMetrics, bgm.clips);
+  const stylesCss = `${buildStylesCss(width, height, metrics, palette)}\n${buildPackagingCss(palette, height > width)}`;
+  const captionsHtml = renderCaptionsHtml(spec, pkgMetrics.introOffset);
+  const audioHtml = renderAudioHtml(spec.audio?.segments, pkgMetrics.introOffset);
 
   const indexHtml = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -783,8 +829,11 @@ export async function buildAlgoStage(rawSpec: AlgoStageSpec): Promise<AlgoStageB
   >
     <div class="stage-bg" aria-hidden="true"></div>
     <div class="stage-grid" aria-hidden="true"></div>
+    ${bgm.html}
     ${audioHtml}
+    ${introHtml}
     ${sectionsHtml}
+    ${outroHtml}
     ${captionsHtml}
   </div>
   <script>

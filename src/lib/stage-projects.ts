@@ -35,9 +35,29 @@ function readStageProject(rootDir: string, slug: string): StageProjectSummary | 
     if (!Array.isArray(items) || items.length === 0) return null;
 
     const last = items[items.length - 1];
-    const duration = Number(last.start ?? 0) + Number(last.duration ?? 0);
-    const audio = spec.audio as { segments?: unknown[] } | undefined;
-    const hasAudio = Boolean(audio && Array.isArray(audio.segments) && audio.segments.length > 0);
+    const rawDuration = Number(last.start ?? 0) + Number(last.duration ?? 0);
+    const audio = spec.audio as { segments?: unknown[]; duration?: number } | undefined;
+    const pkg = spec.packaging as
+      | { enableIntro?: boolean; introDuration?: number; enableOutro?: boolean; outroDuration?: number; bgmFile?: string }
+      | undefined;
+    const introOffset = pkg?.enableIntro ? Number(pkg.introDuration ?? 2.5) : 0;
+    const outroDur = pkg?.enableOutro ? Number(pkg.outroDuration ?? 3.0) : 0;
+    const contentEnd = Math.max(rawDuration, Number(audio?.duration ?? 0));
+    const duration = introOffset + contentEnd + outroDur;
+    const hasAudio = Boolean(
+      (audio && Array.isArray(audio.segments) && audio.segments.length > 0) || pkg?.bgmFile,
+    );
+
+    const timelineItems = [
+      ...(introOffset > 0 ? [{ id: "pkg-intro", label: "片头 Hook", start: 0, duration: introOffset }] : []),
+      ...items.map((it, idx) => ({
+        id: String(it.id ?? `item-${idx}`),
+        label: String(it.badge || it.headline || it.note || `Step ${idx + 1}`),
+        start: Number((Number(it.start ?? 0) + introOffset).toFixed(2)),
+        duration: Number(it.duration ?? 0),
+      })),
+      ...(outroDur > 0 ? [{ id: "pkg-outro", label: "结尾总结 CTA", start: Number((introOffset + contentEnd).toFixed(2)), duration: outroDur }] : []),
+    ];
 
     return {
       slug,
@@ -51,12 +71,7 @@ function readStageProject(rootDir: string, slug: string): StageProjectSummary | 
       itemCount: items.length,
       hasAudio,
       previewUrl: `/api/stage-preview/${slug}/index.html`,
-      timelineItems: items.map((it, idx) => ({
-        id: String(it.id ?? `item-${idx}`),
-        label: String(it.badge || it.headline || it.note || `Step ${idx + 1}`),
-        start: Number(it.start ?? 0),
-        duration: Number(it.duration ?? 0),
-      })),
+      timelineItems,
     };
   } catch {
     return null;

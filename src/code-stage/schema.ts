@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { computePackagingMetrics, stagePackagingSchema } from "./packaging";
 
 const idSchema = z.string().regex(/^[a-z][a-z0-9-]*$/, "ID 必须以小写字母开头，仅含小写字母、数字和连字符");
 const nonEmpty = z.string().trim().min(1);
@@ -76,6 +77,7 @@ export const codeStageSpecSchema = z.object({
   meta: codeStageMetaSchema,
   steps: z.array(codeStepSchema).min(1),
   audio: audioManifestSchema.optional(),
+  packaging: stagePackagingSchema.optional(),
 }).strict().superRefine((spec, ctx) => {
   const tolerance = 1e-6;
   const stepIds = new Set<string>();
@@ -157,5 +159,6 @@ export type CodeStageSpec = z.infer<typeof codeStageSpecSchema>;
 export function getTotalDuration(spec: CodeStageSpec): number {
   const lastStep = spec.steps[spec.steps.length - 1];
   const stepsEnd = lastStep.start + lastStep.duration;
-  return spec.audio ? Math.max(stepsEnd, spec.audio.duration) : stepsEnd;
+  const raw = spec.audio ? Math.max(stepsEnd, spec.audio.duration) : stepsEnd;
+  return computePackagingMetrics(raw, spec.packaging).totalDuration;
 }

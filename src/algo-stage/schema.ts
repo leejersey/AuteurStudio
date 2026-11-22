@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { computePackagingMetrics, stagePackagingSchema } from "../code-stage/packaging";
 import { audioManifestSchema } from "../code-stage/schema";
 
 const idSchema = z.string().regex(/^[a-z][a-z0-9-]*$/, "ID 必须以小写字母开头，仅含小写字母、数字和连字符");
@@ -153,6 +154,7 @@ export const algoStageSpecSchema = z.object({
   code: z.string().min(1),
   frames: z.array(algoTraceFrameSchema).min(1),
   audio: audioManifestSchema.optional(),
+  packaging: stagePackagingSchema.optional(),
 }).strict().superRefine((spec, ctx) => {
   const tolerance = 1e-6;
   const totalCodeLines = spec.code.split("\n").length;
@@ -200,5 +202,6 @@ export type AlgoStageSpec = z.infer<typeof algoStageSpecSchema>;
 export function getAlgoTotalDuration(spec: AlgoStageSpec): number {
   const last = spec.frames[spec.frames.length - 1];
   const framesEnd = last.start + last.duration;
-  return spec.audio ? Math.max(framesEnd, spec.audio.duration) : framesEnd;
+  const raw = spec.audio ? Math.max(framesEnd, spec.audio.duration) : framesEnd;
+  return computePackagingMetrics(raw, spec.packaging).totalDuration;
 }

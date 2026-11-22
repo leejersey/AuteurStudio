@@ -4,12 +4,34 @@ import { useCallback, useState } from "react";
 import SideNavBar from "@/components/layout/SideNavBar";
 import StagePlayer from "@/components/code-studio/StagePlayer";
 import StepEditorDrawer from "@/components/code-studio/StepEditorDrawer";
+import PackagingPanel from "@/components/code-studio/PackagingPanel";
 import type { StageProjectSummary } from "@/lib/stage-projects";
 import type { StudioSettings } from "@/lib/stage-settings";
+import { STAGE_TEMPLATES, type TemplateId } from "@/lib/stage-template-catalog";
 
+type CreationTrack = "ai" | "preset";
 type EngineMode = "code-stage" | "algo-stage";
 type ShikiTheme = "dracula" | "tokyo-night" | "github-dark" | "catppuccin-mocha" | "one-dark-pro";
 type StructureHint = "array" | "linked-list" | "tree" | "matrix" | "stack-queue";
+
+interface AiTemplateOption {
+  id: string;
+  label: string;
+  badge: string;
+  engine: EngineMode;
+  structureHint?: StructureHint;
+  targetSteps?: number;
+}
+
+const AI_TEMPLATE_OPTIONS: AiTemplateOption[] = [
+  { id: "ai-code-evolve", label: "语法逐步演进", badge: "CODE", engine: "code-stage", targetSteps: 4 },
+  { id: "ai-code-diff", label: "重构 / Bug 对比", badge: "CODE", engine: "code-stage", targetSteps: 3 },
+  { id: "ai-algo-array", label: "数组 / 双指针 / 排序", badge: "ARRAY", engine: "algo-stage", structureHint: "array" },
+  { id: "ai-algo-list", label: "链表指针动画", badge: "LIST", engine: "algo-stage", structureHint: "linked-list" },
+  { id: "ai-algo-tree", label: "二叉树 DFS / BFS", badge: "TREE", engine: "algo-stage", structureHint: "tree" },
+  { id: "ai-algo-dp", label: "DP 矩阵填表", badge: "MATRIX", engine: "algo-stage", structureHint: "matrix" },
+  { id: "ai-algo-sq", label: "栈 / 队列 / 调用栈", badge: "STACK", engine: "algo-stage", structureHint: "stack-queue" },
+];
 
 interface TraceRound {
   round: number;
@@ -59,7 +81,18 @@ export default function CodeStudioClient({
   const resolvedProject =
     (initialSlug ? initialProjects.find((p) => p.slug === initialSlug) : undefined) ?? initialProjects[0] ?? null;
 
+  const [creationTrack, setCreationTrack] = useState<CreationTrack>("ai");
+  const [aiTemplateId, setAiTemplateId] = useState<string>(
+    resolvedMode === "algo-stage" ? "ai-algo-array" : "ai-code-evolve",
+  );
+  const [selectedTemplateId, setSelectedTemplateId] = useState<TemplateId>("algo-bubble-sort");
+  const [templateParams, setTemplateParams] = useState<Record<string, string>>({
+    nums: "9, 4, 7, 2, 5",
+  });
+  const [enableTplPackaging, setEnableTplPackaging] = useState(true);
+
   const [mode, setMode] = useState<EngineMode>(resolvedMode);
+  const [targetSteps, setTargetSteps] = useState<number | undefined>(4);
   const [topic, setTopic] = useState("");
   const [referenceCode, setReferenceCode] = useState("");
   const [showRefCode, setShowRefCode] = useState(false);
@@ -78,6 +111,7 @@ export default function CodeStudioClient({
   const [isSynthesizingTts, setIsSynthesizingTts] = useState(false);
   const [isSwitchingRatio, setIsSwitchingRatio] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
+  const [showPackaging, setShowPackaging] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [trace, setTrace] = useState<TraceRound[]>([]);
 
@@ -128,6 +162,50 @@ export default function CodeStudioClient({
     if (!topic.trim()) setTopic(`拆解讲解 ${file.name} 核心代码`);
   };
 
+  const activeTemplate = STAGE_TEMPLATES.find((t) => t.id === selectedTemplateId) ?? STAGE_TEMPLATES[0];
+
+  const handleSelectTemplate = (tplId: TemplateId) => {
+    setSelectedTemplateId(tplId);
+    const tpl = STAGE_TEMPLATES.find((t) => t.id === tplId);
+    if (tpl) {
+      setTemplateParams(Object.fromEntries(tpl.fields.map((f) => [f.key, f.defaultValue])));
+    }
+  };
+
+  const handleCreateFromTemplate = async () => {
+    setIsGenerating(true);
+    setErrorMsg(null);
+    setRenderedUrl(null);
+    setTrace([]);
+    try {
+      const res = await fetch("/api/stage-template/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId: selectedTemplateId,
+          params: templateParams,
+          shikiTheme,
+          withTts,
+          speaker: defaultSpeaker,
+          enablePackaging: enableTplPackaging,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "模板生成失败");
+      await loadProjects(data.slug);
+      setReloadKey((k) => k + 1);
+      // 若为免 AI 代码样板，自动展开右侧步骤编辑器方便直接替换代码
+      if (data.engine === "code-stage") {
+        setShowEditor(true);
+        setShowPackaging(false);
+      }
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "模板生成异常");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleGenerate = async () => {
     const resolvedTopic = topic.trim() || (referenceCode.trim() ? "拆解并逐步讲解以下核心代码" : "");
     if (!resolvedTopic) {
@@ -144,7 +222,7 @@ export default function CodeStudioClient({
       const refCode = referenceCode.trim() || undefined;
       const payload =
         mode === "code-stage"
-          ? { topic: resolvedTopic, language, shikiTheme, maxRounds, withTts, speaker: defaultSpeaker, referenceCode: refCode }
+          ? { topic: resolvedTopic, language, shikiTheme, targetSteps, maxRounds, withTts, speaker: defaultSpeaker, referenceCode: refCode }
           : { topic: resolvedTopic, structureHint, shikiTheme, maxRounds, withTts, speaker: defaultSpeaker, referenceCode: refCode };
 
       const res = await fetch(endpoint, {
@@ -282,238 +360,344 @@ export default function CodeStudioClient({
             </p>
           </div>
 
-          {/* 引擎切换 */}
-          <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-surface-container-low border border-white/5">
+          {/* 创作方式双轨切换：AI 创作（按主题套模板/Agent Loop） vs 免 AI 参数模板 */}
+          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-surface-container-low border border-white/10">
             <button
               type="button"
-              onClick={() => setMode("code-stage")}
-              className={`py-2 px-3 rounded-lg text-xs font-bold transition ${
-                mode === "code-stage"
-                  ? "bg-primary/15 text-primary border border-primary/40"
+              onClick={() => setCreationTrack("ai")}
+              className={`py-2 px-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                creationTrack === "ai"
+                  ? "bg-primary/20 text-primary border border-primary/40"
                   : "text-on-surface-variant hover:text-on-surface"
               }`}
             >
-              CodeStage · 语法演进
+              <span className="material-symbols-outlined text-sm">auto_awesome</span>
+              新建视频（AI）
             </button>
             <button
               type="button"
-              onClick={() => setMode("algo-stage")}
-              className={`py-2 px-3 rounded-lg text-xs font-bold transition ${
-                mode === "algo-stage"
+              onClick={() => setCreationTrack("preset")}
+              className={`py-2 px-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                creationTrack === "preset"
                   ? "bg-secondary/20 text-secondary border border-secondary/40"
                   : "text-on-surface-variant hover:text-on-surface"
               }`}
             >
-              AlgoStage · 沙箱动画
+              <span className="material-symbols-outlined text-sm">bolt</span>
+              免 AI 参数模板
             </button>
           </div>
 
-          {/* 输入表单 */}
-          <div className="flex flex-col gap-3">
-            <label className="text-xs font-semibold text-on-surface-variant">
-              {mode === "code-stage" ? "编程语法 / 重构主题" : "算法 / 数据结构题目"}
-            </label>
-            <textarea
-              rows={3}
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder={
-                mode === "code-stage"
-                  ? "例如：Python 装饰器从重复代码到 @timer 语法糖"
-                  : "例如：滑动窗口求最长无重复子串"
-              }
-              className="w-full rounded-xl bg-surface-container-low border border-white/10 px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary/60 resize-none"
-            />
-
-            {/* 粘贴/上传自有代码（可选） */}
-            <div className="rounded-xl bg-surface-container-low border border-white/10 overflow-hidden">
-              <div className="flex items-center justify-between px-3 py-2">
-                <button
-                  type="button"
-                  onClick={() => setShowRefCode((v) => !v)}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant hover:text-on-surface transition"
-                >
-                  <span className="material-symbols-outlined text-base text-primary">
-                    {showRefCode ? "expand_more" : "chevron_right"}
-                  </span>
-                  粘贴自有代码 / 题解（可选）
-                  {referenceCode.trim() && (
-                    <span className="ml-1 px-1.5 py-0.5 rounded bg-primary/15 text-primary font-mono text-[10px]">
-                      {referenceCode.split("\n").length} 行
-                    </span>
-                  )}
-                </button>
-                <div className="flex items-center gap-2">
-                  {referenceCode.trim() && (
+          {creationTrack === "preset" ? (
+            <div className="flex flex-col gap-3">
+              <div className="text-[11px] text-on-surface-variant bg-surface-container-low/80 border border-white/5 rounded-lg px-3 py-2">
+                0 Token 免大模型：改下方参数 1 秒生成新算法动画，或新建代码样板后在右侧直接改写代码。
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {STAGE_TEMPLATES.map((tpl) => {
+                  const active = tpl.id === selectedTemplateId;
+                  return (
                     <button
+                      key={tpl.id}
                       type="button"
-                      onClick={() => setReferenceCode("")}
-                      className="text-[11px] text-on-surface-variant hover:text-error transition"
+                      onClick={() => handleSelectTemplate(tpl.id)}
+                      className={`text-left p-2.5 rounded-xl border transition ${
+                        active
+                          ? "bg-primary/15 border-primary/50 text-on-surface"
+                          : "bg-surface-container-low/80 border-white/5 text-on-surface-variant hover:border-white/20"
+                      }`}
                     >
-                      清空
+                      <div className="text-[10px] font-mono text-primary font-bold">{tpl.badge}</div>
+                      <div className="text-xs font-bold mt-0.5 truncate">{tpl.name}</div>
                     </button>
-                  )}
-                  <label className="text-[11px] text-primary hover:underline cursor-pointer">
-                    上传文件
+                  );
+                })}
+              </div>
+
+              <p className="text-[11px] text-on-surface-variant leading-relaxed">
+                {activeTemplate.description}
+              </p>
+
+              {/* 参数化输入框 */}
+              <div className="flex flex-col gap-2">
+                {activeTemplate.fields.map((field) => (
+                  <label key={field.key} className="flex flex-col gap-1 text-xs text-on-surface-variant">
+                    {field.label}
                     <input
-                      type="file"
-                      accept=".ts,.tsx,.js,.jsx,.py,.go,.rs,.java,.cpp,.cc,.c,.txt"
-                      onChange={(e) => void handleCodeFileUpload(e.target.files?.[0])}
-                      className="hidden"
+                      type="text"
+                      value={templateParams[field.key] ?? field.defaultValue}
+                      onChange={(e) =>
+                        setTemplateParams((prev) => ({ ...prev, [field.key]: e.target.value }))
+                      }
+                      placeholder={field.placeholder}
+                      className="rounded-lg bg-surface-container-low border border-white/10 px-2.5 py-2 text-xs font-mono text-on-surface focus:outline-none focus:border-primary/60"
                     />
                   </label>
-                </div>
-              </div>
-              {showRefCode && (
-                <div className="px-3 pb-3">
-                  <textarea
-                    rows={6}
-                    value={referenceCode}
-                    onChange={(e) => setReferenceCode(e.target.value)}
-                    placeholder="把你的业务源码、Git 片段或 LeetCode 题解贴在这里，Agent 会自动拆解成逐步演进的教学视频..."
-                    className="w-full rounded-lg bg-surface-container border border-white/10 px-2.5 py-2 text-xs font-mono text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary/60 resize-y leading-relaxed"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* 快捷预设 */}
-            <div className="flex flex-wrap gap-1.5">
-              {mode === "code-stage"
-                ? CODE_PRESETS.map((p) => (
-                    <button
-                      key={p.label}
-                      type="button"
-                      onClick={() => {
-                        setTopic(p.topic);
-                        setLanguage(p.lang);
-                      }}
-                      className="text-[11px] px-2.5 py-1 rounded-full bg-white/5 hover:bg-primary/15 hover:text-primary text-on-surface-variant transition"
-                    >
-                      {p.label}
-                    </button>
-                  ))
-                : ALGO_PRESETS.map((p) => (
-                    <button
-                      key={p.label}
-                      type="button"
-                      onClick={() => {
-                        setTopic(p.topic);
-                        setStructureHint(p.structure);
-                      }}
-                      className="text-[11px] px-2.5 py-1 rounded-full bg-white/5 hover:bg-secondary/20 hover:text-secondary text-on-surface-variant transition"
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-            </div>
-
-            {/* 参数选择 */}
-            <div className="grid grid-cols-2 gap-2.5 mt-1">
-              {mode === "code-stage" ? (
-                <label className="flex flex-col gap-1 text-xs text-on-surface-variant">
-                  编程语言
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className="rounded-lg bg-surface-container-low border border-white/10 px-2.5 py-2 text-xs text-on-surface"
-                  >
-                    <option value="typescript">TypeScript</option>
-                    <option value="python">Python</option>
-                    <option value="javascript">JavaScript</option>
-                    <option value="go">Go</option>
-                    <option value="rust">Rust</option>
-                    <option value="java">Java</option>
-                    <option value="cpp">C++</option>
-                  </select>
-                </label>
-              ) : (
-                <label className="flex flex-col gap-1 text-xs text-on-surface-variant">
-                  数据结构视图
-                  <select
-                    value={structureHint}
-                    onChange={(e) => setStructureHint(e.target.value as StructureHint)}
-                    className="rounded-lg bg-surface-container-low border border-white/10 px-2.5 py-2 text-xs text-on-surface"
-                  >
-                    <option value="array">数组 / 柱状图 / 双指针</option>
-                    <option value="linked-list">链表 / 指针反转</option>
-                    <option value="tree">二叉树 / DFS / BFS</option>
-                    <option value="matrix">二维矩阵 / DP 表格</option>
-                    <option value="stack-queue">栈 / 队列 / 调用栈</option>
-                  </select>
-                </label>
-              )}
-
-              <label className="flex flex-col gap-1 text-xs text-on-surface-variant">
-                Shiki 代码配色
-                <select
-                  value={shikiTheme}
-                  onChange={(e) => setShikiTheme(e.target.value as ShikiTheme)}
-                  className="rounded-lg bg-surface-container-low border border-white/10 px-2.5 py-2 text-xs text-on-surface"
-                >
-                  <option value="dracula">Dracula</option>
-                  <option value="tokyo-night">Tokyo Night</option>
-                  <option value="github-dark">GitHub Dark</option>
-                  <option value="catppuccin-mocha">Catppuccin Mocha</option>
-                  <option value="one-dark-pro">One Dark Pro</option>
-                </select>
-              </label>
-            </div>
-
-            <div className="flex items-center justify-between text-xs text-on-surface-variant">
-              <span>Agent 最大自修复轮数</span>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4].map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setMaxRounds(r)}
-                    className={`w-7 h-7 rounded-lg font-mono text-xs ${
-                      maxRounds === r
-                        ? "bg-primary/20 text-primary border border-primary/40"
-                        : "bg-white/5 text-on-surface-variant"
-                    }`}
-                  >
-                    {r}
-                  </button>
                 ))}
               </div>
-            </div>
 
-            <label className="flex items-center justify-between rounded-xl bg-surface-container-low border border-white/10 px-3 py-2 cursor-pointer">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-base text-primary">record_voice_over</span>
-                <div>
-                  <div className="text-xs font-semibold text-on-surface">火山 V3 语音配音</div>
-                  <div className="text-[10px] text-on-surface-variant">真实配音 + 字级同步字幕</div>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex flex-col gap-1 text-xs text-on-surface-variant">
+                  舞台配色主题
+                  <select
+                    value={shikiTheme}
+                    onChange={(e) => setShikiTheme(e.target.value as ShikiTheme)}
+                    className="rounded-lg bg-surface-container-low border border-white/10 px-2.5 py-2 text-xs text-on-surface"
+                  >
+                    <option value="dracula">Dracula</option>
+                    <option value="tokyo-night">Tokyo Night</option>
+                    <option value="github-dark">GitHub Dark</option>
+                    <option value="catppuccin-mocha">Catppuccin Mocha</option>
+                    <option value="one-dark-pro">One Dark Pro</option>
+                  </select>
+                </label>
+
+                <label className="flex items-center justify-between rounded-lg bg-surface-container-low border border-white/10 px-2.5 py-2 mt-5 cursor-pointer">
+                  <span className="text-xs text-on-surface">片头/片尾+BGM</span>
+                  <input
+                    type="checkbox"
+                    checked={enableTplPackaging}
+                    onChange={(e) => setEnableTplPackaging(e.target.checked)}
+                    className="w-4 h-4 accent-primary"
+                  />
+                </label>
+              </div>
+
+              <label className="flex items-center justify-between rounded-xl bg-surface-container-low border border-white/10 px-3 py-2 cursor-pointer">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-base text-primary">record_voice_over</span>
+                  <div>
+                    <div className="text-xs font-semibold text-on-surface">火山 V3 语音配音</div>
+                    <div className="text-[10px] text-on-surface-variant">取消勾选可 1 秒纯视觉预览</div>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={withTts}
+                  onChange={(e) => setWithTts(e.target.checked)}
+                  className="w-4 h-4 accent-primary"
+                />
+              </label>
+
+              <button
+                type="button"
+                disabled={isGenerating}
+                onClick={handleCreateFromTemplate}
+                className="w-full py-2.5 rounded-xl primary-gradient text-on-primary-fixed font-bold text-sm hover:opacity-90 active:scale-[0.99] disabled:opacity-50 transition flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-lg">
+                  {isGenerating ? "progress_activity" : "bolt"}
+                </span>
+                {isGenerating ? "正在编译模板..." : "秒级新建视频"}
+              </button>
+
+              {errorMsg && (
+                <div className="rounded-xl bg-error/10 border border-error/30 px-3 py-2 text-xs text-error leading-relaxed">
+                  {errorMsg}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {/* Step 1: 先输入视频主题 */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-on-surface">
+                  1. 输入视频主题
+                </label>
+                <textarea
+                  rows={2}
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="例如：Python 列表推导式、TypeScript 泛型、快速排序分区..."
+                  className="w-full rounded-xl bg-surface-container-low border border-white/10 px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary/60 resize-none"
+                />
+              </div>
+
+              {/* Step 2: 选择要套用的视频模板 */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-bold text-on-surface">2. 选择视频模板</span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {AI_TEMPLATE_OPTIONS.map((opt) => {
+                    const active = aiTemplateId === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          setAiTemplateId(opt.id);
+                          setMode(opt.engine);
+                          if (opt.structureHint) setStructureHint(opt.structureHint);
+                          if (opt.targetSteps) setTargetSteps(opt.targetSteps);
+                        }}
+                        className={`text-left px-2.5 py-2 rounded-xl border transition ${
+                          active
+                            ? "bg-primary/15 border-primary/50 text-on-surface"
+                            : "bg-surface-container-low/70 border-white/5 text-on-surface-variant hover:border-white/20"
+                        }`}
+                      >
+                        <div className="text-[10px] font-mono text-primary font-bold">{opt.badge}</div>
+                        <div className="text-xs font-semibold truncate">{opt.label}</div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-              <input
-                type="checkbox"
-                checked={withTts}
-                onChange={(e) => setWithTts(e.target.checked)}
-                className="w-4 h-4 accent-primary"
-              />
-            </label>
 
-            <button
-              type="button"
-              disabled={isGenerating}
-              onClick={handleGenerate}
-              className="mt-1 w-full py-2.5 rounded-xl primary-gradient text-on-primary-fixed font-bold text-sm hover:opacity-90 active:scale-[0.99] disabled:opacity-50 transition flex items-center justify-center gap-2"
-            >
-              <span className="material-symbols-outlined text-lg">
-                {isGenerating ? "progress_activity" : "auto_awesome"}
-              </span>
-              {isGenerating ? "Agent Loop 生成与校验中..." : "启动 Agent Loop 生成视频"}
-            </button>
-
-            {errorMsg && (
-              <div className="rounded-xl bg-error/10 border border-error/30 px-3 py-2 text-xs text-error leading-relaxed">
-                {errorMsg}
+              {/* 粘贴/上传自有代码（可选） */}
+              <div className="rounded-xl bg-surface-container-low border border-white/10 overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowRefCode((v) => !v)}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant hover:text-on-surface transition"
+                  >
+                    <span className="material-symbols-outlined text-base text-primary">
+                      {showRefCode ? "expand_more" : "chevron_right"}
+                    </span>
+                    粘贴自有代码 / 题解（可选）
+                    {referenceCode.trim() && (
+                      <span className="ml-1 px-1.5 py-0.5 rounded bg-primary/15 text-primary font-mono text-[10px]">
+                        {referenceCode.split("\n").length} 行
+                      </span>
+                    )}
+                  </button>
+                  <div className="flex items-center gap-2">
+                    {referenceCode.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => setReferenceCode("")}
+                        className="text-[11px] text-on-surface-variant hover:text-error transition"
+                      >
+                        清空
+                      </button>
+                    )}
+                    <label className="text-[11px] text-primary hover:underline cursor-pointer">
+                      上传文件
+                      <input
+                        type="file"
+                        accept=".ts,.tsx,.js,.jsx,.py,.go,.rs,.java,.cpp,.cc,.c,.txt"
+                        onChange={(e) => void handleCodeFileUpload(e.target.files?.[0])}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+                {showRefCode && (
+                  <div className="px-3 pb-3">
+                    <textarea
+                      rows={5}
+                      value={referenceCode}
+                      onChange={(e) => setReferenceCode(e.target.value)}
+                      placeholder="把你的业务源码或 LeetCode 题解贴在这里，AI 会围绕它拆解..."
+                      className="w-full rounded-lg bg-surface-container border border-white/10 px-2.5 py-2 text-xs font-mono text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary/60 resize-y leading-relaxed"
+                    />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+
+              {/* Step 3: 生成策略（模板快速 1 轮 vs Agent Loop 多轮自检） */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-bold text-on-surface">3. 生成策略</span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setMaxRounds(1)}
+                    className={`px-2.5 py-2 rounded-xl border text-left transition ${
+                      maxRounds === 1
+                        ? "bg-primary/15 border-primary/50 text-on-surface"
+                        : "bg-surface-container-low/70 border-white/5 text-on-surface-variant"
+                    }`}
+                  >
+                    <div className="text-xs font-bold">模板快速生成</div>
+                    <div className="text-[10px] opacity-75">单轮直出，速度快</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMaxRounds(3)}
+                    className={`px-2.5 py-2 rounded-xl border text-left transition ${
+                      maxRounds > 1
+                        ? "bg-primary/15 border-primary/50 text-on-surface"
+                        : "bg-surface-container-low/70 border-white/5 text-on-surface-variant"
+                    }`}
+                  >
+                    <div className="text-xs font-bold">Agent Loop 自检</div>
+                    <div className="text-[10px] opacity-75">沙箱+lint 自动修复</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* 语言 / 配色 */}
+              <div className="grid grid-cols-2 gap-2">
+                {mode === "code-stage" && (
+                  <label className="flex flex-col gap-1 text-xs text-on-surface-variant">
+                    编程语言
+                    <select
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                      className="rounded-lg bg-surface-container-low border border-white/10 px-2.5 py-2 text-xs text-on-surface"
+                    >
+                      <option value="typescript">TypeScript</option>
+                      <option value="python">Python</option>
+                      <option value="javascript">JavaScript</option>
+                      <option value="go">Go</option>
+                      <option value="rust">Rust</option>
+                      <option value="java">Java</option>
+                      <option value="cpp">C++</option>
+                    </select>
+                  </label>
+                )}
+
+                <label className={`flex flex-col gap-1 text-xs text-on-surface-variant ${mode === "algo-stage" ? "col-span-2" : ""}`}>
+                  舞台配色主题
+                  <select
+                    value={shikiTheme}
+                    onChange={(e) => setShikiTheme(e.target.value as ShikiTheme)}
+                    className="rounded-lg bg-surface-container-low border border-white/10 px-2.5 py-2 text-xs text-on-surface"
+                  >
+                    <option value="dracula">Dracula</option>
+                    <option value="tokyo-night">Tokyo Night</option>
+                    <option value="github-dark">GitHub Dark</option>
+                    <option value="catppuccin-mocha">Catppuccin Mocha</option>
+                    <option value="one-dark-pro">One Dark Pro</option>
+                  </select>
+                </label>
+              </div>
+
+              <label className="flex items-center justify-between rounded-xl bg-surface-container-low border border-white/10 px-3 py-2 cursor-pointer">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-base text-primary">record_voice_over</span>
+                  <div>
+                    <div className="text-xs font-semibold text-on-surface">火山 V3 语音配音</div>
+                    <div className="text-[10px] text-on-surface-variant">真实配音 + 字级同步字幕</div>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={withTts}
+                  onChange={(e) => setWithTts(e.target.checked)}
+                  className="w-4 h-4 accent-primary"
+                />
+              </label>
+
+              <button
+                type="button"
+                disabled={isGenerating}
+                onClick={handleGenerate}
+                className="w-full py-2.5 rounded-xl primary-gradient text-on-primary-fixed font-bold text-sm hover:opacity-90 active:scale-[0.99] disabled:opacity-50 transition flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-lg">
+                  {isGenerating ? "progress_activity" : "auto_awesome"}
+                </span>
+                {isGenerating ? "正在新建并生成视频..." : "新建并生成视频"}
+              </button>
+
+              {errorMsg && (
+                <div className="rounded-xl bg-error/10 border border-error/30 px-3 py-2 text-xs text-error leading-relaxed">
+                  {errorMsg}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Agent Loop 诊断日志 */}
           {trace.length > 0 && (
@@ -655,7 +839,26 @@ export default function CodeStudioClient({
               <button
                 type="button"
                 disabled={!activeProject}
-                onClick={() => setShowEditor((v) => !v)}
+                onClick={() => {
+                  setShowPackaging((v) => !v);
+                  setShowEditor(false);
+                }}
+                className={`px-3 py-2 rounded-xl border text-xs font-bold disabled:opacity-40 transition flex items-center gap-1.5 ${
+                  showPackaging
+                    ? "bg-primary/15 border-primary/50 text-primary"
+                    : "bg-surface-container-high border-white/15 text-on-surface hover:border-primary/40"
+                }`}
+              >
+                <span className="material-symbols-outlined text-base">music_note</span>
+                片头 / BGM
+              </button>
+              <button
+                type="button"
+                disabled={!activeProject}
+                onClick={() => {
+                  setShowEditor((v) => !v);
+                  setShowPackaging(false);
+                }}
                 className={`px-3 py-2 rounded-xl border text-xs font-bold disabled:opacity-40 transition flex items-center gap-1.5 ${
                   showEditor
                     ? "bg-primary/15 border-primary/50 text-primary"
@@ -713,6 +916,15 @@ export default function CodeStudioClient({
                 reloadKey={reloadKey}
                 timelineItems={activeProject.timelineItems}
               />
+              {showPackaging && (
+                <PackagingPanel
+                  slug={activeProject.slug}
+                  onApplied={async () => {
+                    await loadProjects(activeProject.slug);
+                    setReloadKey((k) => k + 1);
+                  }}
+                />
+              )}
               {showEditor && (
                 <StepEditorDrawer
                   slug={activeProject.slug}

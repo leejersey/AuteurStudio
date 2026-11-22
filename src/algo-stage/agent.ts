@@ -1,6 +1,7 @@
 import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { createDefaultLlmClient, extractJsonFromText, type LlmTextClient } from "../code-stage/agent";
+import { freezeBgmAsset } from "../code-stage/packaging";
 import { runHyperFramesGate } from "../code-stage/validator";
 import { buildAlgoStage, type AlgoStageBundle } from "./builder";
 import {
@@ -81,6 +82,7 @@ export function writeAlgoStageProject(
   );
   if (!existsSync(fontSrc)) throw new Error("未找到本地 noto-sans-sc 字体");
   copyFileSync(fontSrc, join(absOut, "assets/fonts/noto-sans-sc.woff2"));
+  freezeBgmAsset(absOut, spec.packaging?.bgmFile, cwd);
 }
 
 function validateBlueprintBudget(blueprint: AlgoBlueprint): AlgoValidationIssue[] {
