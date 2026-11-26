@@ -9,8 +9,8 @@ import type { StageProjectSummary } from "@/lib/stage-projects";
 import type { StudioSettings } from "@/lib/stage-settings";
 import { STAGE_TEMPLATES, type TemplateId } from "@/lib/stage-template-catalog";
 
-type CreationTrack = "ai" | "preset";
-type EngineMode = "code-stage" | "algo-stage";
+type CreationTrack = "ai" | "preset" | "diff";
+type EngineMode = "code-stage" | "algo-stage" | "arch-stage";
 type ShikiTheme = "dracula" | "tokyo-night" | "github-dark" | "catppuccin-mocha" | "one-dark-pro";
 type StructureHint = "array" | "linked-list" | "tree" | "matrix" | "stack-queue";
 
@@ -26,6 +26,7 @@ interface AiTemplateOption {
 const AI_TEMPLATE_OPTIONS: AiTemplateOption[] = [
   { id: "ai-code-evolve", label: "语法逐步演进", badge: "CODE", engine: "code-stage", targetSteps: 4 },
   { id: "ai-code-diff", label: "重构 / Bug 对比", badge: "CODE", engine: "code-stage", targetSteps: 3 },
+  { id: "ai-arch-flow", label: "系统架构 / 原理流动", badge: "ARCH", engine: "arch-stage", targetSteps: 4 },
   { id: "ai-algo-array", label: "数组 / 双指针 / 排序", badge: "ARRAY", engine: "algo-stage", structureHint: "array" },
   { id: "ai-algo-list", label: "链表指针动画", badge: "LIST", engine: "algo-stage", structureHint: "linked-list" },
   { id: "ai-algo-tree", label: "二叉树 DFS / BFS", badge: "TREE", engine: "algo-stage", structureHint: "tree" },
@@ -94,6 +95,9 @@ export default function CodeStudioClient({
   const [mode, setMode] = useState<EngineMode>(resolvedMode);
   const [targetSteps, setTargetSteps] = useState<number | undefined>(4);
   const [topic, setTopic] = useState("");
+  const [diffInput, setDiffInput] = useState("");
+  const [prUrlInput, setPrUrlInput] = useState("");
+  const [diffTitle, setDiffTitle] = useState("");
   const [referenceCode, setReferenceCode] = useState("");
   const [showRefCode, setShowRefCode] = useState(false);
   const [language, setLanguage] = useState("typescript");
@@ -218,12 +222,19 @@ export default function CodeStudioClient({
     setTrace([]);
 
     try {
-      const endpoint = mode === "code-stage" ? "/api/code-stage/generate" : "/api/algo-stage/generate";
+      const endpoint =
+        mode === "code-stage"
+          ? "/api/code-stage/generate"
+          : mode === "arch-stage"
+            ? "/api/arch-stage/generate"
+            : "/api/algo-stage/generate";
       const refCode = referenceCode.trim() || undefined;
       const payload =
         mode === "code-stage"
           ? { topic: resolvedTopic, language, shikiTheme, targetSteps, maxRounds, withTts, speaker: defaultSpeaker, referenceCode: refCode }
-          : { topic: resolvedTopic, structureHint, shikiTheme, maxRounds, withTts, speaker: defaultSpeaker, referenceCode: refCode };
+          : mode === "arch-stage"
+            ? { topic: resolvedTopic, theme: shikiTheme, targetSteps, maxRounds, withTts, speaker: defaultSpeaker, referenceNotes: refCode }
+            : { topic: resolvedTopic, structureHint, shikiTheme, maxRounds, withTts, speaker: defaultSpeaker, referenceCode: refCode };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -234,10 +245,44 @@ export default function CodeStudioClient({
       if (!res.ok) {
         throw new Error(data.error || "生成失败");
       }
-      setTrace(data.trace ?? []);
+      setTrace(data.trace ?? data.rounds ?? []);
       await loadProjects(data.slug);
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Agent Loop 执行异常");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCreateFromDiff = async () => {
+    if (!diffInput.trim() && !prUrlInput.trim()) {
+      setErrorMsg("请粘贴 git diff 文本，或输入公开的 GitHub PR 链接");
+      return;
+    }
+    setIsGenerating(true);
+    setErrorMsg(null);
+    setRenderedUrl(null);
+    setTrace([]);
+    try {
+      const res = await fetch("/api/code-stage/from-diff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          diffText: diffInput.trim() || undefined,
+          prUrl: prUrlInput.trim() || undefined,
+          title: diffTitle.trim() || undefined,
+          theme: shikiTheme,
+          enablePackaging: enableTplPackaging,
+          withTts,
+          speaker: defaultSpeaker,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Git Diff 转视频失败");
+      await loadProjects(data.slug);
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Git Diff 转视频失败");
     } finally {
       setIsGenerating(false);
     }
@@ -360,35 +405,99 @@ export default function CodeStudioClient({
             </p>
           </div>
 
-          {/* 创作方式双轨切换：AI 创作（按主题套模板/Agent Loop） vs 免 AI 参数模板 */}
-          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-surface-container-low border border-white/10">
+          {/* 三轨创建切换：AI 新建（默认） vs 免 AI 参数模板 vs Git Diff / PR */}
+          <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-surface-container-low border border-white/10">
             <button
               type="button"
               onClick={() => setCreationTrack("ai")}
-              className={`py-2 px-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-1.5 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
                 creationTrack === "ai"
                   ? "bg-primary/20 text-primary border border-primary/40"
                   : "text-on-surface-variant hover:text-on-surface"
               }`}
             >
               <span className="material-symbols-outlined text-sm">auto_awesome</span>
-              新建视频（AI）
+              AI 新建
             </button>
             <button
               type="button"
               onClick={() => setCreationTrack("preset")}
-              className={`py-2 px-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-1.5 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
                 creationTrack === "preset"
                   ? "bg-secondary/20 text-secondary border border-secondary/40"
                   : "text-on-surface-variant hover:text-on-surface"
               }`}
             >
               <span className="material-symbols-outlined text-sm">bolt</span>
-              免 AI 参数模板
+              免 AI 模板
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreationTrack("diff")}
+              className={`py-2 px-1.5 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                creationTrack === "diff"
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/40"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
+            >
+              <span className="material-symbols-outlined text-sm">difference</span>
+              Diff / PR
             </button>
           </div>
 
-          {creationTrack === "preset" ? (
+          {creationTrack === "diff" ? (
+            <div className="flex flex-col gap-3">
+              <div className="text-[11px] text-on-surface-variant bg-surface-container-low/80 border border-white/5 rounded-lg px-3 py-2 leading-relaxed">
+                0 Token 确定性拆解：贴入 <code className="text-primary">git diff</code> 或公开 GitHub PR 链接，1 秒生成「改动前 → Magic Move Diff → 验证」讲解视频。
+              </div>
+              <label className="flex flex-col gap-1 text-xs text-on-surface-variant">
+                GitHub PR 链接（可选，自动拉取 .diff）
+                <input
+                  type="url"
+                  value={prUrlInput}
+                  onChange={(e) => setPrUrlInput(e.target.value)}
+                  placeholder="https://github.com/owner/repo/pull/123"
+                  className="rounded-lg bg-surface-container-low border border-white/10 px-2.5 py-2 text-xs font-mono text-on-surface focus:outline-none focus:border-primary/60"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-on-surface-variant">
+                或直接粘贴 git diff 文本
+                <textarea
+                  rows={6}
+                  value={diffInput}
+                  onChange={(e) => setDiffInput(e.target.value)}
+                  placeholder={"diff --git a/src/app.ts b/src/app.ts\n@@ -1,4 +1,5 @@\n- const old = 1;\n+ const next = 2;"}
+                  className="rounded-lg bg-surface-container-low border border-white/10 px-2.5 py-2 text-[11px] font-mono text-on-surface focus:outline-none focus:border-primary/60 resize-y leading-relaxed"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-on-surface-variant">
+                视频标题（留空自动根据文件名生成）
+                <input
+                  type="text"
+                  value={diffTitle}
+                  onChange={(e) => setDiffTitle(e.target.value)}
+                  placeholder="例如：Code Review：一次消除重复查询的重构"
+                  className="rounded-lg bg-surface-container-low border border-white/10 px-2.5 py-2 text-xs text-on-surface focus:outline-none focus:border-primary/60"
+                />
+              </label>
+              <button
+                type="button"
+                disabled={isGenerating}
+                onClick={handleCreateFromDiff}
+                className="w-full py-2.5 rounded-xl primary-gradient text-on-primary-fixed font-bold text-sm hover:opacity-90 active:scale-[0.99] disabled:opacity-50 transition flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-lg">
+                  {isGenerating ? "progress_activity" : "difference"}
+                </span>
+                {isGenerating ? "正在解析 Diff 并编译..." : "一键从 Diff / PR 生成视频"}
+              </button>
+              {errorMsg && (
+                <div className="rounded-xl bg-error/10 border border-error/30 px-3 py-2 text-xs text-error leading-relaxed">
+                  {errorMsg}
+                </div>
+              )}
+            </div>
+          ) : creationTrack === "preset" ? (
             <div className="flex flex-col gap-3">
               <div className="text-[11px] text-on-surface-variant bg-surface-container-low/80 border border-white/5 rounded-lg px-3 py-2">
                 0 Token 免大模型：改下方参数 1 秒生成新算法动画，或新建代码样板后在右侧直接改写代码。
@@ -778,10 +887,12 @@ export default function CodeStudioClient({
                           className={`text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0 ${
                             p.engine === "algo-stage"
                               ? "bg-secondary/20 text-secondary"
-                              : "bg-primary/15 text-primary"
+                              : p.engine === "arch-stage"
+                                ? "bg-emerald-500/20 text-emerald-300"
+                                : "bg-primary/15 text-primary"
                           }`}
                         >
-                          {p.engine === "algo-stage" ? "ALGO" : "CODE"}
+                          {p.engine === "algo-stage" ? "ALGO" : p.engine === "arch-stage" ? "ARCH" : "CODE"}
                         </span>
                       </div>
                       <div className="text-[11px] font-mono opacity-65 mt-0.5 flex items-center gap-2">

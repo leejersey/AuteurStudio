@@ -2,6 +2,11 @@ import { buildAlgoStage } from "@/algo-stage/builder";
 import { runAlgorithmInSandbox } from "@/algo-stage/sandbox";
 import type { AlgoStageSpec } from "@/algo-stage/schema";
 import { writeAlgoStageProject } from "@/algo-stage/agent";
+import { writeArchStageProject } from "@/arch-stage/agent";
+import { buildArchStage } from "@/arch-stage/builder";
+import { eventLoopDemoSpec } from "@/arch-stage/demos/event-loop";
+import { ragAgentDemoSpec } from "@/arch-stage/demos/rag-agent";
+import type { ArchStageSpec } from "@/arch-stage/schema";
 import { buildCodeStage } from "@/code-stage/builder";
 import type { CodeStageSpec } from "@/code-stage/schema";
 import { writeCodeStageProject } from "@/code-stage/agent";
@@ -23,7 +28,10 @@ export function instantiateTemplateSpec(
   templateId: TemplateId,
   params: Record<string, string>,
   shikiTheme: StageThemeId = "dracula",
-): { engine: "code-stage"; spec: CodeStageSpec } | { engine: "algo-stage"; spec: AlgoStageSpec } {
+):
+  | { engine: "code-stage"; spec: CodeStageSpec }
+  | { engine: "algo-stage"; spec: AlgoStageSpec }
+  | { engine: "arch-stage"; spec: ArchStageSpec } {
   const uid = `${templateId}-${Date.now().toString(36)}`;
 
   switch (templateId) {
@@ -394,6 +402,22 @@ tracer.step({ line: 8, event: "found", note: "右下角终点总路径数：" + 
         },
       };
     }
+
+    case "arch-event-loop": {
+      const cloned = structuredClone(eventLoopDemoSpec);
+      cloned.meta.id = uid;
+      cloned.meta.theme = shikiTheme;
+      if (params.title?.trim()) cloned.meta.title = params.title.trim();
+      return { engine: "arch-stage", spec: cloned };
+    }
+
+    case "arch-rag-agent": {
+      const cloned = structuredClone(ragAgentDemoSpec);
+      cloned.meta.id = uid;
+      cloned.meta.theme = shikiTheme;
+      if (params.title?.trim()) cloned.meta.title = params.title.trim();
+      return { engine: "arch-stage", spec: cloned };
+    }
   }
 }
 
@@ -403,7 +427,7 @@ export async function compileTemplateToDir(
   shikiTheme: StageThemeId,
   outDir: string,
   enablePackaging = false,
-): Promise<{ engine: "code-stage" | "algo-stage"; duration: number; spec: CodeStageSpec | AlgoStageSpec }> {
+): Promise<{ engine: "code-stage" | "algo-stage" | "arch-stage"; duration: number; spec: CodeStageSpec | AlgoStageSpec | ArchStageSpec }> {
   const created = instantiateTemplateSpec(templateId, params, shikiTheme);
   const packaging = enablePackaging
     ? {
@@ -422,6 +446,13 @@ export async function compileTemplateToDir(
     const bundle = await buildCodeStage(spec);
     writeCodeStageProject(outDir, spec, bundle);
     return { engine: "code-stage", duration: bundle.duration, spec };
+  }
+
+  if (created.engine === "arch-stage") {
+    const spec: ArchStageSpec = { ...created.spec, ...(packaging ? { packaging } : { packaging: undefined }) };
+    const bundle = await buildArchStage(spec);
+    writeArchStageProject(outDir, spec, bundle);
+    return { engine: "arch-stage", duration: bundle.duration, spec };
   }
 
   const spec: AlgoStageSpec = { ...created.spec, ...(packaging ? { packaging } : {}) };

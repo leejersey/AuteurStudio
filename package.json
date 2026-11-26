@@ -13,11 +13,13 @@
     "db:migrate": "npx tsx scripts/migrate-json-to-pg.ts",
     "test:code-stage": "tsx --test src/code-stage/*.test.ts",
     "test:algo-stage": "tsx --test src/algo-stage/*.test.ts",
+    "test:arch-stage": "tsx --test src/arch-stage/*.test.ts",
     "code-stage:build": "tsx scripts/code-stage/build-demo.ts",
     "code-stage:build:tts": "tsx scripts/code-stage/build-demo.ts --with-tts",
     "code-stage:gen": "tsx scripts/code-stage/generate.ts",
     "algo-stage:build": "tsx scripts/algo-stage/build-demo.ts",
-    "algo-stage:gen": "tsx scripts/algo-stage/generate.ts"
+    "algo-stage:gen": "tsx scripts/algo-stage/generate.ts",
+    "arch-stage:build": "tsx scripts/arch-stage/build-demo.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.50",

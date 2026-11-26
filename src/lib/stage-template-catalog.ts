@@ -4,7 +4,9 @@ export type TemplateId =
   | "algo-binary-search"
   | "algo-bubble-sort"
   | "algo-reverse-list"
-  | "algo-dp-grid";
+  | "algo-dp-grid"
+  | "arch-event-loop"
+  | "arch-rag-agent";
 
 export interface TemplateFieldDef {
   key: string;
@@ -15,7 +17,7 @@ export interface TemplateFieldDef {
 
 export interface StageTemplateMeta {
   id: TemplateId;
-  engine: "code-stage" | "algo-stage";
+  engine: "code-stage" | "algo-stage" | "arch-stage";
   name: string;
   badge: string;
   description: string;
@@ -87,6 +89,26 @@ export const STAGE_TEMPLATES: StageTemplateMeta[] = [
     fields: [
       { key: "rows", label: "网格行数 (2~4)", placeholder: "3", defaultValue: "3" },
       { key: "cols", label: "网格列数 (2~5)", placeholder: "4", defaultValue: "4" },
+    ],
+  },
+  {
+    id: "arch-event-loop",
+    engine: "arch-stage",
+    name: "JS 事件循环（Event Loop）",
+    badge: "ARCH · 原理",
+    description: "Call Stack → Web APIs → 微任务 VIP 插队 → 宏任务调度，带数据包流动动效",
+    fields: [
+      { key: "title", label: "视频标题", placeholder: "30 秒彻底搞懂 JS 事件循环", defaultValue: "30 秒彻底搞懂 JS 事件循环（Event Loop）" },
+    ],
+  },
+  {
+    id: "arch-rag-agent",
+    engine: "arch-stage",
+    name: "企业级 RAG + AI Agent 架构",
+    badge: "ARCH · AI",
+    description: "Query 改写 → 混合召回 → Rerank 精排 → LLM + Tool Call 全链路流动动画",
+    fields: [
+      { key: "title", label: "视频标题", placeholder: "一图看懂企业级 RAG + AI Agent 全链路", defaultValue: "一图看懂企业级 RAG + AI Agent 全链路" },
     ],
   },
 ];

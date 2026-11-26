@@ -2,9 +2,10 @@ import { join } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import type { AlgoStageSpec } from "@/algo-stage/schema";
+import type { ArchStageSpec } from "@/arch-stage/schema";
 import type { CodeStageSpec } from "@/code-stage/schema";
 import { compileTemplateToDir, STAGE_TEMPLATES, type TemplateId } from "@/lib/stage-templates";
-import { attachTtsToAlgoStage, attachTtsToCodeStage } from "@/lib/stage-tts";
+import { attachTtsToAlgoStage, attachTtsToArchStage, attachTtsToCodeStage } from "@/lib/stage-tts";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,8 @@ const createReqSchema = z.object({
     "algo-bubble-sort",
     "algo-reverse-list",
     "algo-dp-grid",
+    "arch-event-loop",
+    "arch-rag-agent",
   ]),
   params: z.record(z.string(), z.string()).default({}),
   shikiTheme: z.enum(["dracula", "tokyo-night", "github-dark", "catppuccin-mocha", "one-dark-pro"]).default("dracula"),
@@ -46,6 +49,9 @@ export async function POST(req: NextRequest) {
     if (input.withTts) {
       if (compiled.engine === "code-stage") {
         const res = await attachTtsToCodeStage(compiled.spec as CodeStageSpec, outDir, input.speaker);
+        duration = res.duration;
+      } else if (compiled.engine === "arch-stage") {
+        const res = await attachTtsToArchStage(compiled.spec as ArchStageSpec, outDir, input.speaker);
         duration = res.duration;
       } else {
         const res = await attachTtsToAlgoStage(compiled.spec as AlgoStageSpec, outDir, input.speaker);

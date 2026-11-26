@@ -8,7 +8,7 @@ interface StepEditorDrawerProps {
 }
 
 export default function StepEditorDrawer({ slug, onCompiled }: StepEditorDrawerProps) {
-  const [engine, setEngine] = useState<"code-stage" | "algo-stage">("code-stage");
+  const [engine, setEngine] = useState<"code-stage" | "algo-stage" | "arch-stage">("code-stage");
   const [spec, setSpec] = useState<Record<string, unknown> | null>(null);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,6 +49,7 @@ export default function StepEditorDrawer({ slug, onCompiled }: StepEditorDrawerP
   }
 
   const isAlgo = engine === "algo-stage";
+  const isArch = engine === "arch-stage";
   const items = (isAlgo ? spec.frames : spec.steps) as Array<Record<string, unknown>>;
   const current = items[selectedIdx] ?? items[0];
 
@@ -115,7 +116,59 @@ export default function StepEditorDrawer({ slug, onCompiled }: StepEditorDrawerP
         </div>
       )}
 
-      {!isAlgo ? (
+      {isArch ? (
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <label className="flex flex-col gap-1 text-on-surface-variant">
+            步骤标题 (headline)
+            <input
+              type="text"
+              value={String(current.headline ?? "")}
+              onChange={(e) => updateCurrentItem({ headline: e.target.value })}
+              className="rounded-lg bg-surface-container-low border border-white/10 px-2.5 py-1.5 text-on-surface"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-on-surface-variant">
+            激活节点 ID (逗号分隔)
+            <input
+              type="text"
+              value={Array.isArray(current.activeNodes) ? current.activeNodes.join(",") : ""}
+              onChange={(e) => {
+                const ids = e.target.value
+                  .split(/[,\s]+/)
+                  .map((s) => s.trim())
+                  .filter(Boolean);
+                updateCurrentItem({ activeNodes: ids });
+              }}
+              className="rounded-lg bg-surface-container-low border border-white/10 px-2.5 py-1.5 text-on-surface font-mono"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-on-surface-variant col-span-2">
+            核心要点卡片说明 (callout.body)
+            <textarea
+              rows={2}
+              value={String(((current.callout as Record<string, unknown> | undefined)?.body) ?? "")}
+              onChange={(e) =>
+                updateCurrentItem({
+                  callout: {
+                    title: String(((current.callout as Record<string, unknown> | undefined)?.title) ?? "核心原理"),
+                    body: e.target.value,
+                  },
+                })
+              }
+              className="rounded-lg bg-surface-container-low border border-white/10 px-2.5 py-1.5 text-on-surface"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-on-surface-variant col-span-2">
+            旁白解说 (narration)
+            <textarea
+              rows={2}
+              value={String(current.narration ?? "")}
+              onChange={(e) => updateCurrentItem({ narration: e.target.value })}
+              className="rounded-lg bg-surface-container-low border border-white/10 px-2.5 py-1.5 text-on-surface"
+            />
+          </label>
+        </div>
+      ) : !isAlgo ? (
         <div className="grid grid-cols-2 gap-3 text-xs">
           <label className="flex flex-col gap-1 text-on-surface-variant">
             步骤标题 (headline)

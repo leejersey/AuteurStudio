@@ -3,7 +3,7 @@ import { join, resolve } from "node:path";
 
 export interface StageProjectSummary {
   slug: string;
-  engine: "code-stage" | "algo-stage";
+  engine: "code-stage" | "algo-stage" | "arch-stage";
   id: string;
   title: string;
   subtitle?: string;
@@ -31,6 +31,7 @@ function readStageProject(rootDir: string, slug: string): StageProjectSummary | 
     const spec = JSON.parse(readFileSync(specPath, "utf8")) as Record<string, unknown>;
     const meta = (spec.meta ?? {}) as Record<string, unknown>;
     const isAlgo = Array.isArray(spec.frames);
+    const isArch = spec.engine === "arch-stage" || Array.isArray(spec.nodes);
     const items = (isAlgo ? spec.frames : spec.steps) as Array<Record<string, unknown>> | undefined;
     if (!Array.isArray(items) || items.length === 0) return null;
 
@@ -61,10 +62,16 @@ function readStageProject(rootDir: string, slug: string): StageProjectSummary | 
 
     return {
       slug,
-      engine: isAlgo ? "algo-stage" : "code-stage",
+      engine: isAlgo ? "algo-stage" : isArch ? "arch-stage" : "code-stage",
       id: String(meta.id ?? slug),
       title: String(meta.title ?? slug),
-      subtitle: meta.algorithm ? String(meta.algorithm) : meta.language ? String(meta.language).toUpperCase() : undefined,
+      subtitle: meta.domain
+        ? String(meta.domain)
+        : meta.algorithm
+          ? String(meta.algorithm)
+          : meta.language
+            ? String(meta.language).toUpperCase()
+            : undefined,
       duration: Number(duration.toFixed(2)),
       width: Number(meta.width ?? 1920),
       height: Number(meta.height ?? 1080),
@@ -84,7 +91,13 @@ export function listStageProjects(cwd = process.cwd()): StageProjectSummary[] {
 
   if (!existsSync(rootDir)) return projects;
 
-  const builtInSlugs = ["code-stage-demo", "algo-stage-binary-search", "algo-stage-reverse-linked-list"];
+  const builtInSlugs = [
+    "code-stage-demo",
+    "algo-stage-binary-search",
+    "algo-stage-reverse-linked-list",
+    "arch-stage-event-loop",
+    "arch-stage-rag-agent",
+  ];
   for (const slug of builtInSlugs) {
     const p = readStageProject(rootDir, slug);
     if (p) projects.push(p);

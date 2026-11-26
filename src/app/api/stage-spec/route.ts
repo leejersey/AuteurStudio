@@ -5,6 +5,9 @@ import { z } from "zod";
 import { writeAlgoStageProject } from "@/algo-stage/agent";
 import { buildAlgoStage } from "@/algo-stage/builder";
 import { algoStageSpecSchema } from "@/algo-stage/schema";
+import { writeArchStageProject } from "@/arch-stage/agent";
+import { buildArchStage } from "@/arch-stage/builder";
+import { archStageSpecSchema } from "@/arch-stage/schema";
 import { writeCodeStageProject } from "@/code-stage/agent";
 import { buildCodeStage } from "@/code-stage/builder";
 import { codeStageSpecSchema } from "@/code-stage/schema";
@@ -53,7 +56,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "目标工程不存在" }, { status: 404 });
   }
   const spec = JSON.parse(readFileSync(join(projectDir, "spec.json"), "utf8"));
-  const engine = Array.isArray(spec.frames) ? "algo-stage" : "code-stage";
+  const engine = Array.isArray(spec.frames)
+    ? "algo-stage"
+    : spec.engine === "arch-stage" || Array.isArray(spec.nodes)
+      ? "arch-stage"
+      : "code-stage";
   return NextResponse.json({ slug, engine, spec });
 }
 
@@ -76,6 +83,21 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({
         slug,
         engine: "algo-stage",
+        duration: bundle.duration,
+        width: bundle.width,
+        height: bundle.height,
+        spec: parsed,
+      });
+    }
+
+    if (rawSpec.engine === "arch-stage" || Array.isArray(rawSpec.nodes)) {
+      const parsed = archStageSpecSchema.parse(rawSpec);
+      const bundle = await buildArchStage(parsed);
+      writeArchStageProject(projectDir, parsed, bundle);
+      restorePreservedAudio(projectDir, preservedAudio);
+      return NextResponse.json({
+        slug,
+        engine: "arch-stage",
         duration: bundle.duration,
         width: bundle.width,
         height: bundle.height,
