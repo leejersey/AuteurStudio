@@ -138,19 +138,11 @@ npm install
 ```
 
 ### 3. 配置环境变量
-在项目根目录创建 `.env.local`：
+复制模板后填入密钥：
 ```bash
-# LLM（二选一：默认优先使用 DeepSeek，也支持任意 OpenAI 兼容接口）
-DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxx
-# OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxx
-# OPENAI_BASE_URL=https://api.openai.com/v1
-# OPENAI_MODEL=gpt-4o-mini
-
-# 火山引擎 Seed TTS V3（可选，不配置可正常生成无声视频）
-VOLC_TTS_API_KEY=your_volc_v3_api_key
-VOLC_TTS_RESOURCE_ID=seed-tts-2.0
-VOLC_TTS_SPEAKER=zh_female_vv_uranus_bigtts
+cp .env.example .env.local
 ```
+LLM 填 `DEEPSEEK_API_KEY` 或 `OPENAI_API_KEY`（二选一）。火山 TTS 与 `DATABASE_URL` 可选，缺省仍可生成无声视频，数据库走本地 PostgreSQL。
 
 ### 4. 构建内置演示样片（可选，无需 API Key）
 ```bash
